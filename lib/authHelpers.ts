@@ -1,17 +1,24 @@
 import { supabaseServer } from "./supabaseServer";
 
 export async function requireAdmin(req: Request) {
-  const { data, error } = await supabaseServer.auth.getUser();
+  // Crear instancia de supabase por request
+  const supabase = supabaseServer();
 
-  if (error || !data.user) return null;
+  // Obtener usuario autenticado
+  const { data, error } = await supabase.auth.getUser();
 
-  if (data.user.user_metadata.role !== "admin") return null;
+  // Si no hay sesión → null
+  if (error || !data?.user) return null;
+
+  // Validar rol admin dentro del user_metadata
+  const role = data.user.user_metadata?.role;
+
+  if (role !== "admin") return null;
 
   return data.user;
 }
 
-
+// Conversión de teléfono a pseudo-email
 export function phoneToPseudoEmail(phoneNormalized: string) {
-  // +595981234567 -> plus595981234567@raspay.local
-  return `${phoneNormalized}@raspay.local`.replace(/\+/g, 'plus');
+  return `${phoneNormalized}@raspay.local`.replace(/\+/g, "plus");
 }
