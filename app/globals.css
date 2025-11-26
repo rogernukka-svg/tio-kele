@@ -1,3 +1,6 @@
+/* ================== Fuentes ================== */
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+
 /* ====== Paleta & base (estilo Fortuna + tu marca) ====== */
 :root{
   --brand: #FFD33D;        /* dorado principal */
@@ -11,6 +14,7 @@
   --input-border: rgba(255,255,255,.12);
   --focus: rgba(255, 211, 61, .35);
 }
+
 *{ box-sizing:border-box }
 html,body{
   background: radial-gradient(1200px 600px at 20% -10%, #2e1247 0%, #160a22 45%) no-repeat fixed,
@@ -33,20 +37,86 @@ img{ max-width:100%; display:block; }
 .text-gold{ color: var(--brand); }
 .brand-chip{ background: var(--brand); color:#1b1426; border-radius:999px; padding:4px 10px; font-weight:800; }
 
-/* ====== Header ====== */
-.header{
-  display:flex; align-items:center; gap:12px; margin-bottom:16px;
+/* ====== Header RASPAY Moderno ====== */
+.raspay-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(90deg, #1b0f2b 0%, #2a0f3a 60%, #3a134f 100%);
+  padding: 14px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.35);
 }
-.header .logo{
-  height:36px; width:36px; border-radius:10px; background:linear-gradient(180deg,#3a134f,#2a0f3a);
-  display:flex; align-items:center; justify-content:center; border:1px solid rgba(255,255,255,.08);
+
+.raspay-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
-.header .brand{
-  font-weight:900; font-size:20px; letter-spacing:.2px;
+.logo-icon {
+  width: 38px;
+  height: 38px;
+  background: radial-gradient(circle at 30% 30%, #ffd33d, #a87500);
+  color: #1b0f2b;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
 }
-.header .brand span:last-child{ color:var(--brand); }
-.header .spacer{ flex:1 }
-.header .actionbar{ display:flex; gap:10px; flex-wrap:wrap; }
+.brand-text {
+  font-weight: 900;
+  font-size: 20px;
+  letter-spacing: 0.5px;
+}
+.brand-text .text-gold {
+  color: var(--brand);
+}
+
+/* ====== Controles ====== */
+.raspay-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.user-info {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 6px 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.user-email {
+  color: #fff;
+  font-size: 13px;
+}
+.role-chip {
+  background: rgba(255, 211, 61, 0.15);
+  border: 1px solid rgba(255, 211, 61, 0.3);
+  color: #ffd33d;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 12px;
+}
+.mute-btn {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.logout-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
 
 /* ====== Cards y hero ====== */
 .card{
@@ -88,6 +158,10 @@ h1,h2,h3{ margin: 0 0 8px 0; }
   padding:.5rem 1rem; border-radius:9999px; font-weight:800;
 }
 
+/* Pulse global para CTA dorado */
+.btn.btn-gold.pulse:not([disabled]) { animation: rp-pulse 1.8s ease-in-out infinite; }
+@keyframes rp-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.04)} }
+
 /* ====== Inputs ====== */
 .input{
   width:100%; padding:12px 14px; border-radius:12px;
@@ -105,6 +179,42 @@ h1,h2,h3{ margin: 0 0 8px 0; }
 .scratch-wrap{ user-select:none; -webkit-user-select:none; touch-action:none; }
 .scratch-cover{ touch-action:none; -ms-touch-action:none; pointer-events:auto; }
 .shadow-inner{ box-shadow: inset 0 1px 12px rgba(0,0,0,.25); }
+
+/* Glow cuando está activo el scratch */
+.scratch-wrap { box-shadow: 0 0 0 0 rgba(244,200,106,.6); transition: box-shadow .3s; }
+.scratch-wrap.active { box-shadow: 0 0 32px 0 rgba(244,200,106,.35); }
+.scratch-wrap canvas { display:block; }
+.scratch-wrap .relative { border-radius:16px; overflow:hidden; }
+
+/* ====== Tablas (panel admin/cajero) ====== */
+.table { width:100%; border-collapse: collapse; margin-top:12px; }
+.table th, .table td { padding:10px 12px; border-bottom:1px solid rgba(255,255,255,.08); text-align:left; }
+.table thead th { font-size:13px; text-transform:uppercase; letter-spacing:.04em; opacity:.9; }
+.table tbody tr:hover { background: rgba(255,255,255,.03); }
+
+/* ====== KPI grid (panel admin) ====== */
+.kpi-grid{ display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; }
+@media (max-width: 1100px){ .kpi-grid{ grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px){ .kpi-grid{ grid-template-columns: 1fr; } }
+
+.kpi-card{
+  background: linear-gradient(180deg, #21122f 0%, #1b0f2b 100%);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:14px; padding:14px;
+}
+.kpi-title{ font-size:12px; opacity:.8; margin-bottom:6px; }
+.kpi-value{ font-size:28px; font-weight:900; letter-spacing:.3px; }
+
+/* ====== Chips de estado ====== */
+.pill{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; font-weight:800; font-size:12px; }
+.pill-success{ background: rgba(34,197,94,.18); border:1px solid rgba(34,197,94,.35); color:#86efac; }
+.pill-warn{ background: rgba(245,158,11,.16); border:1px solid rgba(245,158,11,.35); color:#facc15; }
+.pill-info{ background: rgba(59,130,246,.16); border:1px solid rgba(59,130,246,.35); color:#93c5fd; }
+.status-dot{ width:8px; height:8px; border-radius:999px; background:#86efac; }
+
+/* ====== Toolbar genérica ====== */
+.toolbar{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.toolbar .spacer{ flex:1; }
 
 /* ====== Modal (login estilo Fortuna) ====== */
 .modal-backdrop{
@@ -132,3 +242,6 @@ h1,h2,h3{ margin: 0 0 8px 0; }
 }
 .footer-links{ display:flex; gap:10px; flex-wrap:wrap; }
 .badge18{ padding:2px 8px; border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.08); border-radius:999px; }
+
+/* ====== Tipografía de premios (canvas) ====== */
+.prize-font { font-family: "Bebas Neue", ui-sans-serif; letter-spacing:.5px; }

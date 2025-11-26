@@ -1,3 +1,1341 @@
-import dynamic from 'next/dynamic';
-const Game = dynamic(() => import('../components/Game'), { ssr: false });
-export default function Page(){ return <Game/>; }
+'use client';
+import React, { useEffect, useRef, useState } from 'react';
+import { supabase } from '../lib/supabaseClient';
+import useSound from '../lib/useSound';
+
+type Prize = { label: string; payout: number; weight: number };
+type Winner = { name: string; amount: number; ts: number };
+type Role = 'admin' | 'cashier' | 'user' | null;
+
+/* ===================== Config juego ===================== */
+const PRIZES: Prize[] = [
+  { label: '💸 ₲0', payout: 0, weight: 62 },
+  { label: '🎟 ₲1.000', payout: 1000, weight: 18 },
+  { label: '🎉 ₲5.000', payout: 5000, weight: 10 },
+  { label: '🏅 ₲10.000', payout: 10000, weight: 6 },
+  { label: '💎 ₲50.000', payout: 50000, weight: 3 },
+  { label: '👑 ₲100.000', payout: 100000, weight: 1 },
+];
+
+const TICKET_PRICE = 1000;
+const JACKPOT_BASE = 2_000_000;
+const JACKPOT_CUT = 0.40;
+const JACKPOT_ODDS = 0.004;
+
+// Tamaños / visual
+const SCRATCH_RADIUS = 26;
+const PRIZE_FONT_FAMILY = '"Bebas Neue", ui-sans-serif';
+const USE_PRIZE_IMAGES = true;
+
+/* ===================== Utils globales ===================== */
+
+// Vibración
+const vib = (pattern: number | number[]) => {
+  if ('vibrate' in navigator) {
+    try {
+      navigator.vibrate(pattern as any);
+    } catch {}
+  }
+};
+
+/* ===================== Hook Música de fondo ===================== */
+function useBgm(url: string | null, initialVolume = 0.25) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [enabled, setEnabled] = useState(false);
+
+  useEffect(() => {
+    if (!url || typeof window === 'undefined') return;
+    const a = new Audio(url);
+    a.loop = true;
+    a.preload = 'auto';
+    a.volume = initialVolume;
+    audioRef.current = a;
+
+    return () => {
+      a.pause();
+      audioRef.current = null;
+    };
+  }, [url, initialVolume]);
+
+  const play = async () => {
+    try {
+      await audioRef.current?.play();
+      setEnabled(true);
+    } catch {}
+  };
+
+  const pause = () => {
+    try {
+      audioRef.current?.pause();
+      setEnabled(false);
+    } catch {}
+  };
+
+  return { play, pause, enabled };
+}
+
+/* ===================== Hook LoopSound ===================== */
+function useLoopSound(url: string, volume = 0.22) {
+  const ref = useRef<HTMLAudioElement | null>(null);
+  useEffect(() => {
+    const a = new Audio(url);
+    a.loop = true;
+    a.preload = 'auto';
+    a.volume = volume;
+    ref.current = a;
+
+    return () => {
+      try { a.pause(); } catch {}
+      ref.current = null;
+    };
+  }, [url, volume]);
+
+  const play = async () => { try { await ref.current?.play(); } catch {} };
+  const stop = () => {
+    if (!ref.current) return;
+    try {
+      ref.current.pause();
+      ref.current.currentTime = 0;
+    } catch {}
+  };
+
+  return { play, stop };
+}
+
+/* ===================== Audio unlock ===================== */
+function installGlobalAudioUnlock(startFns: Array<() => void>) {
+  const tryResume = () => {
+    startFns.forEach((fn) => { try { fn(); } catch {} });
+    window.removeEventListener('pointerdown', tryResume);
+    window.removeEventListener('touchstart', tryResume);
+  };
+  window.addEventListener('pointerdown', tryResume, { once: true });
+  window.addEventListener('touchstart', tryResume, { once: true });
+}
+
+/* ===================== Confetti ===================== */
+function boomConfetti(node: HTMLElement | null) {
+  if (!node) return;
+  const c = document.createElement('canvas');
+  c.style.position = 'absolute';
+  c.style.inset = '0';
+  node.appendChild(c);
+
+  const ctx = c.getContext('2d')!;
+  c.width = node.clientWidth;
+  c.height = node.clientHeight;
+
+  const pieces = Array.from({ length: 120 }).map(() => ({
+    x: Math.random() * c.width,
+    y: Math.random() * -80,
+    vx: -2 + Math.random() * 4,
+    vy: 2 + Math.random() * 3,
+    a: 1,
+    r: 4 + Math.random() * 6,
+  }));
+
+  const tick = () => {
+    ctx.clearRect(0, 0, c.width, c.height);
+    pieces.forEach((p) => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.a *= 0.985;
+      ctx.globalAlpha = p.a;
+      ctx.fillStyle = '#FACC15';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    if (pieces.some((p) => p.a > 0.08))
+      requestAnimationFrame(tick);
+    else node.removeChild(c);
+  };
+
+  tick();
+}
+
+/* ===================== Cache de imágenes ===================== */
+const IMG_CACHE: Record<string, HTMLImageElement> = {};
+function loadPrizeImage(key: string) {
+  if (IMG_CACHE[key]) return Promise.resolve(IMG_CACHE[key]);
+  const img = new Image();
+  img.src = `/prizes/${key}.png`;
+  return new Promise((res) => {
+    img.onload = () => {
+      IMG_CACHE[key] = img;
+      res(img);
+    };
+  });
+}
+function keyFromLabel(label: string) {
+  if (label.includes("100.000")) return "100k";
+  if (label.includes("50.000")) return "50k";
+  if (label.includes("10.000")) return "10k";
+  if (label.includes("5.000")) return "5k";
+  if (label.includes("1.000")) return "1k";
+  return "0";
+}
+
+/* ===================== ScratchCard ===================== */
+type ScratchCardProps = {
+  index: number;
+  prize: Prize | null;
+  ticketActive: boolean;
+  onRevealed: (i: number) => void;
+  playScratch: () => void;
+  stopScratch: () => void;
+};
+
+function ScratchCard({
+  index,
+  prize,
+  ticketActive,
+  onRevealed,
+  playScratch,
+  stopScratch,
+}: ScratchCardProps) {
+
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const coverRef = useRef<HTMLCanvasElement | null>(null);
+  const [revealed, setRevealed] = useState(false);
+  const drawing = useRef(false);
+
+  const drawCover = () => {
+    const k = coverRef.current;
+    if (!k) return;
+    const ctx = k.getContext('2d')!;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = '#FB923C';
+    ctx.fillRect(0, 0, k.width, k.height);
+    ctx.globalCompositeOperation = 'destination-out';
+  };
+
+  const scratch = (x: number, y: number) => {
+    const k = coverRef.current;
+    if (!k) return;
+    const ctx = k.getContext('2d')!;
+    ctx.beginPath();
+    ctx.arc(x, y, SCRATCH_RADIUS, 0, Math.PI * 2);
+    ctx.fill();
+  };
+
+  const computePct = () => {
+    const k = coverRef.current;
+    if (!k) return 0;
+    const ctx = k.getContext('2d')!;
+    const img = ctx.getImageData(0, 0, k.width, k.height);
+    let clear = 0;
+    for (let i = 3; i < img.data.length; i += 4)
+      if (img.data[i] === 0) clear++;
+    return clear / (img.data.length / 4);
+  };
+
+  const finish = () => {
+    if (!revealed) {
+      setRevealed(true);
+      stopScratch();
+      onRevealed(index);
+    }
+  };
+
+  const pointerDown = (e: React.PointerEvent) => {
+    if (!ticketActive || revealed) return;
+    drawing.current = true;
+    const r = coverRef.current!.getBoundingClientRect();
+    scratch(e.clientX - r.left, e.clientY - r.top);
+    playScratch();
+    vib(10);
+  };
+
+  const pointerMove = (e: React.PointerEvent) => {
+    if (!drawing.current || !ticketActive || revealed) return;
+    const r = coverRef.current!.getBoundingClientRect();
+    scratch(e.clientX - r.left, e.clientY - r.top);
+    if (computePct() > 0.55) finish();
+  };
+
+  const pointerUp = () => {
+    drawing.current = false;
+    stopScratch();
+    if (computePct() > 0.55) finish();
+  };
+
+  useEffect(() => {
+    const c = canvasRef.current;
+    const k = coverRef.current;
+    if (!c || !k) return;
+
+    const resize = () => {
+      const parent = c.parentElement!;
+      const w = parent.clientWidth;
+      const h = Math.round(w * 1.25);
+      c.width = w;
+      c.height = h;
+      k.width = w;
+      k.height = h;
+
+      drawCover();
+
+      if (prize) {
+        const ctx = c.getContext('2d')!;
+        ctx.fillStyle = '#065F46';
+        ctx.fillRect(0, 0, w, h);
+      }
+    };
+
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(c.parentElement!);
+
+    return () => ro.disconnect();
+  }, [prize]);
+
+  return (
+    <div
+      style={{
+        position: 'relative',
+        borderRadius: 14,
+        overflow: 'hidden',
+        border: '3px solid #FACC15',
+      }}
+    >
+      <canvas ref={canvasRef} style={{ width: '100%' }} />
+      <canvas
+        ref={coverRef}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          touchAction: 'none',
+          opacity: revealed ? 0 : 1,
+          transition: 'opacity .25s',
+        }}
+        onPointerDown={pointerDown}
+        onPointerMove={pointerMove}
+        onPointerUp={pointerUp}
+        onPointerCancel={pointerUp}
+      />
+    </div>
+  );
+}
+/* ===================== Componente principal ===================== */
+
+export default function Game() {
+  /* ===== Sesión & rol ===== */
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [role, setRole] = useState<Role>(null);
+  const [roleLoading, setRoleLoading] = useState(false);
+
+  useEffect(() => {
+    if (
+      typeof window !== "undefined" &&
+      window.location.hash.includes("access_token=")
+    ) {
+      history.replaceState(
+        null,
+        "",
+        window.location.pathname + window.location.search
+      );
+    }
+
+    (async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      setUserEmail(session?.user?.email ?? null);
+
+      if (session?.user?.id) {
+        setRoleLoading(true);
+
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
+          .maybeSingle();
+
+        setRole(!error && data?.role ? (data.role as Role) : "user");
+        setRoleLoading(false);
+      } else {
+        setRole(null);
+      }
+    })();
+
+    const { data: sub } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        setUserEmail(session?.user?.email ?? null);
+
+        if (session?.user?.id) {
+          setRoleLoading(true);
+
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", session.user.id)
+            .maybeSingle();
+
+          setRole(!error && data?.role ? (data.role as Role) : "user");
+          setRoleLoading(false);
+        } else {
+          setRole(null);
+        }
+      }
+    );
+
+    return () => {
+      sub.subscription?.unsubscribe();
+    };
+  }, []);
+
+  /* ==== Lluvia de dinero simple (fondo) ==== */
+  useEffect(() => {
+    const container = document.getElementById("rain-money");
+    if (!container) return;
+
+    const images = [
+      "/scratch/billete1.png",
+      "/scratch/billete2.png",
+      "/scratch/moneda1.png",
+    ];
+
+    function createDrop() {
+      const img = document.createElement("img");
+      img.src = images[Math.floor(Math.random() * images.length)];
+
+      img.style.position = "absolute";
+      img.style.top = "-80px";
+      img.style.left = Math.random() * 100 + "%";
+      img.style.width = 30 + Math.random() * 40 + "px";
+      img.style.opacity = "0.95";
+      img.style.animation = `moneyFall ${2 + Math.random() * 2}s linear`;
+
+      container.appendChild(img);
+      img.addEventListener("animationend", () => img.remove());
+    }
+
+    const interval = setInterval(createDrop, 250);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setUserEmail(null);
+    setRole(null);
+  };
+
+  const panelHref =
+    role === "admin" ? "/admin" : role === "cashier" ? "/cashier" : "/";
+
+  /* ===== Juego ===== */
+  const [balance, setBalance] = useState<number>(5000);
+  const [jackpot, setJackpot] = useState<number>(JACKPOT_BASE);
+  const [winners, setWinners] = useState<Winner[]>([
+    { name: "María A.", amount: 50000, ts: Date.now() - 1000 * 60 * 35 },
+    { name: "Juan G.", amount: 10000, ts: Date.now() - 1000 * 60 * 50 },
+  ]);
+  const [streak, setStreak] = useState(0);
+
+  const [cardPrizes, setCardPrizes] = useState<Prize[]>([]);
+  const [cardRevealed, setCardRevealed] = useState<boolean[]>([]);
+  const [ticketResolved, setTicketResolved] = useState(false);
+  const [isActive, setIsActive] = useState<boolean>(false);
+  const [message, setMessage] = useState<string>("");
+
+  const [bonusPct, setBonusPct] = useState<number | null>(null);
+  useEffect(() => {
+    setBonusPct(Math.floor(Math.random() * 8) + 2);
+  }, []);
+
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+
+  /* Rankings */
+  const monthlyWinners = [
+    { name: "Carlos D.", shares: 42 },
+    { name: "Ana R.", shares: 39 },
+    { name: "Luis V.", shares: 31 },
+    { name: "Jenny L.", shares: 28 },
+    { name: "Pedro S.", shares: 26 },
+  ];
+
+  const dailyWinners = [
+    { name: "María A.", shares: 12 },
+    { name: "Juan G.", shares: 10 },
+    { name: "Pedro L.", shares: 9 },
+    { name: "Ana R.", shares: 7 },
+    { name: "Luis M.", shares: 5 },
+  ];
+
+  const weeklyWinners = [
+    { name: "Miguel T.", shares: 14 },
+    { name: "Sofi M.", shares: 12 },
+    { name: "Arturo L.", shares: 9 },
+    { name: "Gabi F.", shares: 8 },
+    { name: "Leo A.", shares: 7 },
+  ];
+
+  /* Sonidos */
+  const sTap = useSound("/sfx/tap.wav", { volume: 0.6 });
+  const sPrize = useSound("/sfx/win.wav", { volume: 0.85 });
+  const scratchLoop = useLoopSound("/sfx/scratch_loop.mp3", 0.2);
+
+  /* Música */
+  const bgm = useBgm("/sfx/bgm.wav", 0.22);
+
+  useEffect(() => {
+    installGlobalAudioUnlock([
+      () => sTap(1),
+      () => bgm.play(),
+      () => scratchLoop.play(),
+    ]);
+  }, []);
+  const formatGs = (n: number) =>
+    new Intl.NumberFormat('es-PY', {
+      style: 'currency',
+      currency: 'PYG',
+      maximumFractionDigits: 0,
+    }).format(n);
+
+  const maskName = () => {
+    const first = [
+      'María',
+      'Juan',
+      'Pedro',
+      'Ana',
+      'Luis',
+      'Camila',
+      'Diego',
+      'Sol',
+      'Rosa',
+      'Mario',
+    ];
+    const last = ['G.', 'A.', 'L.', 'R.', 'M.', 'P.', 'N.', 'V.', 'D.', 'S.'];
+    return `${
+      first[Math.floor(Math.random() * first.length)]
+    } ${last[Math.floor(Math.random() * last.length)]}`;
+  };
+
+  // Elegir un premio según pesos (con pity en racha larga)
+  const drawRandomPrize = (): Prize => {
+    const boosted = [...PRIZES];
+    if (streak >= 6) {
+      const i = boosted.findIndex((p) => p.payout === 1000);
+      if (i >= 0)
+        boosted[i] = {
+          ...boosted[i],
+          weight: boosted[i].weight + 8,
+        };
+    }
+    const total = boosted.reduce((s, p) => s + p.weight, 0);
+    let r = Math.random() * total;
+    for (const p of boosted) {
+      r -= p.weight;
+      if (r <= 0) return p;
+    }
+    return boosted[boosted.length - 1];
+  };
+
+  const shortEmail = userEmail
+    ? userEmail.length > 26
+      ? `${userEmail.slice(0, 12)}…${userEmail.slice(-10)}`
+      : userEmail
+    : null;
+  const roleChip = roleLoading ? 'Cargando…' : role ?? '';
+
+  const visibleTitle =
+    !isActive && !ticketResolved
+      ? 'RASPA Y GANA'
+      : isActive && !ticketResolved
+      ? 'Rascá las 6 casillas para revelar tu suerte'
+      : ticketResolved
+      ? message || 'Resultado del ticket'
+      : '—';
+
+  const buyTicket = () => {
+    if (isActive) return;
+    if (balance < TICKET_PRICE) {
+      setMessage('Saldo insuficiente.');
+      return;
+    }
+    sTap();
+    setBalance((b) => b - TICKET_PRICE);
+    setJackpot((j) => j + Math.floor(TICKET_PRICE * JACKPOT_CUT));
+
+    const prizes = Array.from({ length: 6 }, () => drawRandomPrize());
+    setCardPrizes(prizes);
+    setCardRevealed(new Array(6).fill(false));
+    setTicketResolved(false);
+    setIsActive(true);
+    setMessage('Raspa 6 casillas y busque 3 figuras iguales ✨');
+  };
+
+  const handleCardRevealed = (index: number) => {
+    setCardRevealed((prev) => {
+      const base =
+        prev.length === 6 ? [...prev] : new Array(6).fill(false);
+      if (base[index]) return prev;
+      base[index] = true;
+      return base;
+    });
+  };
+
+  // Resolver ticket cuando las 6 casillas fueron reveladas
+  useEffect(() => {
+    if (!isActive) return;
+    if (cardPrizes.length !== 6) return;
+    if (cardRevealed.length !== 6) return;
+    if (!cardRevealed.every(Boolean)) return;
+    if (ticketResolved) return;
+
+    let paid = 0;
+
+    // Contar labels
+    const counts: Record<string, number> = {};
+    for (const p of cardPrizes) {
+      counts[p.label] = (counts[p.label] || 0) + 1;
+    }
+
+    let winnerLabel: string | null = null;
+    for (const [label, count] of Object.entries(counts)) {
+      const base = PRIZES.find((p) => p.label === label);
+      if (count >= 3 && base && base.payout > 0) {
+        winnerLabel = label;
+        break;
+      }
+    }
+
+    if (winnerLabel) {
+      const winnerPrize =
+        PRIZES.find((p) => p.label === winnerLabel) || null;
+      if (winnerPrize) {
+        paid += winnerPrize.payout;
+      }
+    }
+
+    // Jackpot opcional si hubo premio
+    let winJackpot = false;
+    if (paid > 0 && Math.random() < JACKPOT_ODDS) {
+      paid += jackpot;
+      winJackpot = true;
+      setJackpot(JACKPOT_BASE);
+    }
+
+    if (paid > 0) {
+      sPrize();
+      setWinners((w) =>
+        [{ name: maskName(), amount: paid, ts: Date.now() }, ...w].slice(
+          0,
+          6
+        )
+      );
+     const big = paid >= 50000;
+boomConfetti(wrapRef.current);
+vib(big ? [12, 100, 12] : 18);
+
+      vib(big ? [12, 100, 12] : 18);
+      setBalance((b) => b + paid);
+      setStreak(0);
+      setMessage(
+        `¡Ganaste ${formatGs(
+          paid
+        )}${winJackpot ? ' + JACKPOT 🎰' : ''}! 🎉`
+      );
+    } else {
+      setStreak((s) => Math.min(s + 1, 6));
+      setMessage('No hubo 3 iguales esta vez. ¡Probá de nuevo! ✨');
+    }
+
+    setTicketResolved(true);
+    setIsActive(false);
+  }, [
+    isActive,
+    cardPrizes,
+    cardRevealed,
+    ticketResolved,
+    jackpot,
+    formatGs,
+    sPrize,
+  ]);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    if (isActive && !ticketResolved) el.classList.add('active');
+    else el.classList.remove('active');
+  }, [isActive, ticketResolved]);
+
+  // 💥 EXPLOSIÓN + LLUVIA — versión react mejorada
+  useEffect(() => {
+    const container = document.getElementById('money-explosion');
+    if (!container) return;
+
+    const bills = [
+      '/DOLAR.png',
+      '/DOLAR1.png',
+      '/DOLAR2.png',
+      '/DOLAR3.png',
+      '/DOLAR4.png',
+      '/DOLAR5.png',
+      '/DOLAR6.png',
+      '/DOLAR7.png',
+    ];
+
+    /* =============================
+        🔥 EXPLOSIÓN LENTA
+    ============================== */
+    function launchExplosion() {
+      for (let i = 0; i < 14; i++) {
+        const img = document.createElement('img');
+        img.src = bills[Math.floor(Math.random() * bills.length)];
+
+        img.style.position = 'absolute';
+        img.style.width = Math.random() * 40 + 40 + 'px';
+        img.style.left = '50%';
+        img.style.top = '50%';
+        img.style.transform = 'translate(-50%, -50%)';
+        img.style.opacity = '0.95';
+        img.style.zIndex = '1';
+
+        const angle = Math.random() * 360;
+        const distance = Math.random() * 260 + 100;
+
+        // 🔥 Explosión más lenta (2.8s)
+        img.animate(
+          [
+            {
+              transform: 'translate(-50%,-50%) scale(1) rotate(0deg)',
+              opacity: 1,
+            },
+            {
+              transform:
+                'translate(' +
+                Math.cos(angle) * distance +
+                'px,' +
+                Math.sin(angle) * distance +
+                'px) rotate(' +
+                (Math.random() * 500 - 250) +
+                'deg)',
+              opacity: 0,
+            },
+          ],
+          {
+            duration: 2800,
+            easing: 'cubic-bezier(0.2,0.8,0.3,1)',
+            fill: 'forwards',
+          }
+        );
+
+        container.appendChild(img);
+        setTimeout(() => img.remove(), 3500);
+      }
+    }
+
+    /* =============================
+        🌧️ LLUVIA AL FINAL
+    ============================== */
+    function rainFall() {
+      for (let i = 0; i < 12; i++) {
+        const drop = document.createElement('img');
+        drop.src = bills[Math.floor(Math.random() * bills.length)];
+
+        drop.style.position = 'absolute';
+        drop.style.top = '-80px';
+        drop.style.left = Math.random() * 100 + '%';
+        drop.style.width = Math.random() * 28 + 32 + 'px';
+        drop.style.opacity = '0.95';
+        drop.style.zIndex = '1';
+
+        drop.style.animation = `moneyRainFall ${
+          2.5 + Math.random()
+        }s linear`;
+
+        container.appendChild(drop);
+        drop.addEventListener('animationend', () => drop.remove());
+      }
+    }
+
+    /* =============================
+          🔁 BUCLE INFINITO
+    ============================== */
+    function cycle() {
+      launchExplosion();
+
+      // lluvia después de la explosión (delay 2.8s)
+      setTimeout(() => {
+        rainFall();
+      }, 2800);
+    }
+
+    cycle(); // primera vez
+    const interval = setInterval(cycle, 5500); // más lento
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div
+      ref={wrapRef}
+      className="container"
+      style={{
+        position: 'relative',
+        minHeight: '100vh',
+        background: '#00120B',
+        padding: '0 10px 24px',
+        color: '#F9FAFB',
+      }}
+    >
+      {/* 🔰 BANNER VER MI PERFIL */}
+      <div
+        style={{
+          width: '100%',
+          padding: '12px 14px',
+          borderRadius: 14,
+          background:
+            'linear-gradient(90deg,#0B924F 0%, #0AA463 50%, #089A55 100%)',
+          boxShadow: '0 3px 0 rgba(0,0,0,0.45)',
+          margin: '8px 0 14px',
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof window !== 'undefined') {
+              window.location.href = panelHref;
+            }
+          }}
+          style={{
+            background: '#000',
+            padding: '10px 20px',
+            borderRadius: 12,
+            fontWeight: 800,
+            fontSize: 16,
+            color: '#fff',
+            border: '2px solid #1E293B',
+            boxShadow: '0 3px 0 #000',
+          }}
+        >
+          Ver mi perfil
+        </button>
+      </div>
+
+      {/* BLOQUE PRINCIPAL CON KELE */}
+      <div
+        className="card-strong"
+        style={{
+          marginBottom: 12,
+          background:
+            'linear-gradient(180deg,#047857 0%,#065F46 50%,#022C22 100%)',
+          color: '#ECFDF5',
+          padding: '16px 14px 18px',
+          borderRadius: 14,
+          boxShadow: '0 4px 0 rgba(0,0,0,0.55)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        {/* 💥 EXPLOSIÓN ANIMADA DE BILLETES */}
+        <div
+          id="money-explosion"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            overflow: 'hidden',
+            zIndex: 1,
+          }}
+        ></div>
+
+        {/* KELE + TIO KELE */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            zIndex: 2,
+          }}
+        >
+          <img
+            src="/kelembu.png"
+            alt="Kelembu"
+            style={{
+              height: 150,
+              width: 'auto',
+              borderRadius: 10,
+              objectFit: 'cover',
+              background: 'transparent',
+            }}
+          />
+
+          <img
+            src="/tiokele.png"
+            alt="Tío Kele"
+            style={{
+              marginTop: 6,
+              width: 120,
+              height: 'auto',
+            }}
+          />
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0, zIndex: 2 }}>
+          <div
+            style={{
+              fontSize: 26,
+              fontWeight: 900,
+              letterSpacing: 1,
+              marginBottom: 4,
+            }}
+          >
+            RASPA Y GANA
+          </div>
+
+          <div
+            style={{
+              fontSize: 15,
+              fontWeight: 800,
+              color: '#FACC15',
+              marginBottom: 8,
+              lineHeight: 1.25,
+            }}
+          >
+            – ENCUENTRE 3 FIGURAS IGUALES Y GANE DINERO EN EFECTIVO
+          </div>
+
+          <div
+            style={{
+              fontSize: 14,
+              lineHeight: 1.35,
+              background: 'rgba(15,23,42,0.75)',
+              padding: '8px 10px',
+              borderRadius: 8,
+            }}
+          >
+            Raspa 6 casillas y busque 3 figuras iguales y gane{' '}
+            <span style={{ fontWeight: 700, color: '#FBBF24' }}>
+              Gs 50.000
+            </span>{' '}
+            y{' '}
+            <span style={{ fontWeight: 800, color: '#F97316' }}>
+              Gs 100.000
+            </span>
+            .
+          </div>
+        </div>
+      </div>
+
+      {/* BARRA JUGAR / BONUS 3 */}
+      <div
+        style={{
+          display: 'flex',
+          gap: 8,
+          marginBottom: 14,
+          background:
+            'linear-gradient(90deg,#0EA463 0%, #0B8F53 50%, #067A45 100%)',
+          padding: '10px 12px',
+          borderRadius: 14,
+          boxShadow: '0 3px 0 rgba(0,0,0,0.45)',
+        }}
+      >
+        {/* BOTÓN JUGAR - AMARILLO */}
+        <button
+          className="btn btn-gold pulse"
+          onClick={() => {
+            bgm.play();
+            buyTicket();
+          }}
+          disabled={isActive}
+          style={{
+            background:
+              'linear-gradient(180deg, #F4C400 0%, #DDA600 100%)',
+            color: '#000',
+            borderRadius: 12,
+            padding: '12px 26px',
+            fontWeight: 900,
+            fontSize: 20,
+            border: '2px solid #C89200',
+            boxShadow: '0 4px 0 #7A5A00',
+            textTransform: 'uppercase',
+            minWidth: 140,
+          }}
+        >
+          JUGAR
+        </button>
+
+        <button
+        type="button"
+        style={{
+          flex: 1,
+          background: '#4338CA',
+          color: '#E5E7EB',
+          borderRadius: 10,
+          padding: '8px 14px',
+          fontWeight: 700,
+          fontSize: 15,
+          border: '2px solid #3730A3',
+          boxShadow: '0 3px 0 #1E1B4B',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 4,
+          maxWidth: 140,
+        }}
+      >
+        Bonus <span style={{ fontWeight: 900 }}>3</span>
+      </button>
+
+      </div>  {/* ← cierre correcto de la barra JUGAR */}
+
+
+
+
+        {/* CASILLAS */}
+        <div className="scratch-wrap card">
+          <div
+            className="scratch-grid"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: 10,
+              padding: 8,
+            }}
+          >
+            {cardPrizes.length === 6 ? (
+              cardPrizes.map((p, i) => (
+                <ScratchCard
+                  key={i}
+                  index={i}
+                  prize={p}
+                  ticketActive={isActive && !ticketResolved}
+                  onRevealed={handleCardRevealed}
+                  playScratch={scratchLoop.play}
+                  stopScratch={scratchLoop.stop}
+                />
+              ))
+            ) : (
+              <>
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      borderRadius: 14,
+                      background: '#000',
+                      height: 150,
+                      width: '100%',
+                      overflow: 'hidden',
+                      border: '3px solid #FACC15',
+                      boxShadow: '0 3px 0 rgba(0,0,0,0.5)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <img
+                      src="/scratch/raspe.png"
+                      alt="Raspe aquí"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                      }}
+                    />
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+
+          {message && (
+            <div
+              className="card"
+              style={{
+                marginTop: 10,
+                background: '#020617',
+                borderRadius: 10,
+                padding: '8px 10px',
+                fontSize: 13,
+              }}
+            >
+              {message}
+            </div>
+          )}
+        </div>
+
+        {/* INFO: GANADORES + RACHA */}
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 10,
+          }}
+        >
+          {/* === BLOQUES DE PUBLICIDAD (3 columnas) === */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: 10,
+              marginBottom: 14,
+              width: '100%',
+            }}
+          >
+            <div
+              style={{
+                background: '#020617',
+                borderRadius: 10,
+                padding: '10px 12px',
+                height: 78,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 3px 0 rgba(0,0,0,0.40)',
+                border: '2px solid #0EA463',
+                color: '#F9FAFB',
+                fontWeight: 800,
+                fontSize: 14,
+                textAlign: 'center',
+              }}
+            >
+              Publicidad 1
+            </div>
+
+            <div
+              style={{
+                background: '#020617',
+                borderRadius: 10,
+                padding: '10px 12px',
+                height: 78,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 3px 0 rgba(0,0,0,0.40)',
+                border: '2px solid #0EA463',
+                color: '#F9FAFB',
+                fontWeight: 800,
+                fontSize: 14,
+                textAlign: 'center',
+              }}
+            >
+              Publicidad 2
+            </div>
+
+            <div
+              style={{
+                background: '#020617',
+                borderRadius: 10,
+                padding: '10px 12px',
+                height: 78,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 3px 0 rgba(0,0,0,0.40)',
+                border: '2px solid #0EA463',
+                color: '#F9FAFB',
+                fontWeight: 800,
+                fontSize: 14,
+                textAlign: 'center',
+              }}
+            >
+              Publicidad 3
+            </div>
+          </div>
+
+          {/* === RANKINGS DE COMPARTIDOS === */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            {/* 🔥 Ranking diario */}
+            <div
+              className="card"
+              style={{
+                flex: '1 1 190px',
+                background: '#020617',
+                borderRadius: 10,
+                padding: '10px 12px',
+              }}
+            >
+              <div
+                className="small"
+                style={{
+                  marginBottom: 6,
+                  fontSize: 11,
+                  letterSpacing: 1.2,
+                  textTransform: 'uppercase',
+                  color: '#A7F3D0',
+                  fontWeight: 800,
+                }}
+              >
+                Ranking de compartidos 🔗🔥
+              </div>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr auto',
+                  rowGap: 6,
+                  fontSize: 13,
+                }}
+              >
+                {dailyWinners.slice(0, 5).map((w, i) => (
+                  <React.Fragment key={i}>
+                    <div>{w.name}</div>
+                    <div
+                      style={{ fontWeight: 900, color: '#A7F3D0' }}
+                    >
+                      {w.shares}x
+                    </div>
+                  </React.Fragment>
+                ))}
+              </div>
+            </div>
+
+            {/* 🟡 Ranking mensual */}
+            <div
+              className="card"
+              style={{
+                flex: '1 1 190px',
+                background: '#020617',
+                borderRadius: 10,
+                padding: '10px 12px',
+              }}
+            >
+              <div
+                className="small"
+                style={{
+                  marginBottom: 6,
+                  fontSize: 11,
+                  letterSpacing: 1.2,
+                  textTransform: 'uppercase',
+                  color: '#FDE047',
+                  fontWeight: 800,
+                }}
+              >
+                Acumulado 3 meses 🏆
+              </div>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr auto',
+                  rowGap: 6,
+                  fontSize: 13,
+                }}
+              >
+                {monthlyWinners.slice(0, 5).map((w, i) => (
+                  <React.Fragment key={i}>
+                    <div>{w.name}</div>
+                    <div
+                      style={{
+                        fontWeight: 900,
+                        color: '#FACC15',
+                      }}
+                    >
+                      {w.shares ?? 0}x
+                    </div>
+                  </React.Fragment>
+                ))}
+              </div>
+            </div>
+
+            {/* 🔵 Ranking semanal */}
+            <div
+              className="card"
+              style={{
+                flex: '1 1 190px',
+                background: '#020617',
+                borderRadius: 10,
+                padding: '10px 12px',
+              }}
+            >
+              <div
+                className="small"
+                style={{
+                  marginBottom: 6,
+                  fontSize: 11,
+                  letterSpacing: 1.2,
+                  textTransform: 'uppercase',
+                  color: '#38BDF8',
+                  fontWeight: 800,
+                }}
+              >
+                Ranking semanal 📅
+              </div>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr auto',
+                  rowGap: 6,
+                  fontSize: 13,
+                }}
+              >
+                {weeklyWinners.slice(0, 5).map((w, i) => (
+                  <React.Fragment key={i}>
+                    <div>{w.name}</div>
+                    <div
+                      style={{
+                        fontWeight: 900,
+                        color: '#0EA5E9',
+                      }}
+                    >
+                      {w.shares ?? 0}x
+                    </div>
+                  </React.Fragment>
+                ))}
+              </div>
+            </div>
+ </div>   {/* ← ESTE ES EL QUE FALTABA */} 
+
+        {/* === CSS GLOBAL === */}
+        <style jsx global>{`
+          .btn.btn-gold.pulse:not([disabled]) {
+            animation: rp-pulse 1.8s ease-in-out infinite;
+          }
+
+          @keyframes rp-pulse {
+            0%,
+            100% {
+              transform: scale(1);
+            }
+            50% {
+              transform: scale(1.04);
+            }
+          }
+
+          @keyframes moneyFall {
+            0% {
+              transform: translateY(-80px) rotate(0deg);
+              opacity: 1;
+            }
+            100% {
+              transform: translateY(260px) rotate(45deg);
+              opacity: 0.9;
+            }
+          }
+
+          .scratch-wrap {
+            box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.55);
+            transition: box-shadow 0.3s;
+            background: #020617;
+            border-radius: 14px;
+            padding: 8px;
+          }
+
+          .scratch-wrap.active {
+            box-shadow: 0 0 32px 0 rgba(22, 163, 74, 0.45);
+          }
+
+          @keyframes moneyRainFall {
+            0% {
+              transform: translateY(-80px) rotate(0deg);
+              opacity: 1;
+            }
+            100% {
+              transform: translateY(280px) rotate(30deg);
+              opacity: 0.8;
+            }
+          }
+        `}</style>
+      </div>
+    </div>
+    
+  );
+}
