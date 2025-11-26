@@ -1,14 +1,15 @@
-// Normaliza el teléfono y genera el pseudo-email interno
-export function normalizePhone(p: string) {
-  let s = (p || '').trim();
-  s = s.replace(/\s+/g, '').replace(/[()\-\.]/g, '');
-  if (!s.startsWith('+')) {
-    // Por defecto PARAGUAY (+595). Ajustá si querés otro país.
-    if (s.length >= 8 && s.length <= 12) s = '+595' + s;
-    else s = '+' + s;
-  }
-  return s;
+import { supabaseServer } from "./supabaseServer";
+
+export async function requireAdmin(req: Request) {
+  const { data, error } = await supabaseServer.auth.getUser();
+
+  if (error || !data.user) return null;
+
+  if (data.user.user_metadata.role !== "admin") return null;
+
+  return data.user;
 }
+
 
 export function phoneToPseudoEmail(phoneNormalized: string) {
   // +595981234567 -> plus595981234567@raspay.local
