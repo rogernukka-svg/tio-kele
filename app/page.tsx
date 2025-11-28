@@ -38,6 +38,7 @@ const vib = (pattern: number | number[]) => {
   }
 };
 
+
 /* ===================== Hook Música de fondo ===================== */
 function useBgm(url: string | null, initialVolume = 0.25) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -320,6 +321,104 @@ function ScratchCard({
 /* ===================== Componente principal ===================== */
 
 export default function Game() {
+  const [showSplash, setShowSplash] = useState(true);
+
+  // ================= SPLASH ANIMACIÓN =================
+  useEffect(() => {
+    const canvas = document.getElementById("matrix") as HTMLCanvasElement | null;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+
+    function resizeMatrix() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeMatrix();
+    window.addEventListener("resize", resizeMatrix);
+
+    const letters = "TIO KELE";
+    const fontSize = 18;
+    let columns = canvas.width / fontSize;
+    let drops = Array(Math.floor(columns)).fill(1);
+
+    function drawMatrix() {
+      ctx.fillStyle = "rgba(0, 0, 0, 0.07)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "#6bff6b";
+      ctx.font = fontSize + "px monospace";
+
+      for (let i = 0; i < drops.length; i++) {
+        const text = letters.charAt(Math.floor(Math.random() * letters.length));
+        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+          drops[i] = 0;
+        }
+        drops[i]++;
+      }
+    }
+
+    const interval = setInterval(drawMatrix, 40);
+    return () => clearInterval(interval);
+  }, []);
+
+// ================= PORCENTAJE HASTA 300 =================
+useEffect(() => {
+  let pct = 1;
+  const pctEl = document.getElementById("percentText");
+  const lineEl = document.querySelector(".loader-line") as HTMLDivElement | null;
+
+  if (pctEl) {
+    const el = pctEl as HTMLElement;
+
+    // ⭐ CENTRADO Y DESTACADO
+    el.style.position = "absolute";
+    el.style.left = "50%";
+    el.style.top = "85%";
+    el.style.transform = "translateX(-50%)";
+    el.style.color = "#ffdb4d";
+    el.style.textShadow =
+      "0 0 10px #ffdb4d, 0 0 22px #ffaf00, 0 0 30px #ff9000";
+    el.style.fontWeight = "900";
+    el.style.fontSize = "36px";
+    el.style.zIndex = "10";
+    el.style.animation = "pulsePct 1.4s infinite ease-in-out";
+  }
+
+  const pctTimer = setInterval(() => {
+    pct += Math.floor(Math.random() * 6) + 2;
+    if (pct > 300) pct = 300;
+
+    if (pctEl) pctEl.textContent = pct + "%";
+
+    if (lineEl) {
+      const visualWidth = Math.min(pct, 100);
+      lineEl.style.width = visualWidth + "%";
+    }
+
+    // ⭐ CUANDO LLEGA A 300 → Glow + explosión + fade-out
+    if (pct === 300 && pctEl) {
+      const el = pctEl as HTMLElement;
+
+      // detener la animación normal
+      el.style.animation = "none";
+
+      // activar la explosión final
+      el.style.animation = "finalGlow 1.1s forwards ease-out";
+    }
+
+    // ⭐ Cambia a la app un poquito después de la explosión
+    if (pct >= 300) {
+      clearInterval(pctTimer);
+      setTimeout(() => setShowSplash(false), 1150);
+    }
+  }, 110);
+
+  return () => clearInterval(pctTimer);
+}, []);
+
   /* ===== Sesión & rol ===== */
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [role, setRole] = useState<Role>(null);
@@ -665,6 +764,7 @@ vib(big ? [12, 100, 12] : 18);
   // 💥 EXPLOSIÓN + LLUVIA — versión react mejorada
   useEffect(() => {
     const container = document.getElementById('money-explosion');
+    
     if (!container) return;
 
     const bills = [
@@ -769,6 +869,152 @@ vib(big ? [12, 100, 12] : 18);
 
     return () => clearInterval(interval);
   }, []);
+if (showSplash) {
+  return (
+    <div style={{
+      position: "relative",
+      width: "100%",
+      height: "100vh",
+      overflow: "hidden",
+      background: "#000",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center"
+    }}>
+
+      {/* === Fondo Matrix === */}
+      <canvas
+        id="matrix"
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100vw",
+          height: "100vh",
+          zIndex: 0,
+        }}
+      />
+
+      {/* Logo */}
+      <img
+        src="/servidor/logo.png"
+        className="logo"
+        style={{
+          width: "clamp(250px, 50vw, 420px)",
+          zIndex: 2,
+          filter: "drop-shadow(0 0 15px #00ff88)",
+          marginBottom: 10
+        }}
+      />
+
+      <div
+        className="subtitle"
+        style={{
+          fontSize: "clamp(18px,4vw,32px)",
+          color: "#ffe600",
+          textShadow: "0 0 10px black",
+          marginBottom: 20,
+          letterSpacing: 3,
+          fontWeight: "bold",
+          zIndex: 2
+        }}
+      >
+        CARGANDO INFORMACIÓN...
+      </div>
+
+      {/* Contenedor animación */}
+      <div
+        className="loader-container"
+        style={{
+          position: "relative",
+          width: "80%",
+          maxWidth: 600,
+          textAlign: "center",
+          zIndex: 2,
+          marginTop: 20
+        }}
+      >
+
+        {/* Van animada */}
+        <img
+          src="/servidor/tiokele.png"
+          className="tiokele"
+          style={{
+            width: 140,
+            position: "absolute",
+            top: -110,
+            left: 0,
+            transform: "translateX(-50%)",
+            animation: "moveVan 4s linear forwards",
+            zIndex: 3
+          }}
+        />
+
+        {/* Porcentaje */}
+        <div
+          id="percentText"
+          className="percent-text"
+          style={{
+            position: "absolute",
+            top: 70,
+            left: 0,
+            transform: "translateX(-50%)",
+            fontSize: 26,
+            fontWeight: "bold",
+            color: "#fff",
+            textShadow: "0 0 5px #00ff88",
+            zIndex: 3,
+            animation: "moveText 4s linear forwards"
+          }}
+        >
+          1%
+        </div>
+
+        {/* Barra */}
+        <div
+          className="loader"
+          style={{
+            width: "100%",
+            height: 10,
+            background: "rgba(255,255,255,0.25)",
+            borderRadius: 10,
+            overflow: "hidden",
+            marginTop: 80
+          }}
+        >
+          <div
+            className="loader-line"
+            style={{
+              height: "100%",
+              width: "0%",
+              background: "#ffffff",
+              borderRadius: 10,
+              boxShadow: "0 0 12px #ffffff",
+              animation: "load 4s linear forwards",
+            }}
+          />
+        </div>
+      </div>
+
+      {/* CSS global exacto del HTML */}
+      <style jsx global>{`
+        @keyframes load {
+          0% { width: 0%; }
+          100% { width: 100%; }
+        }
+        @keyframes moveVan {
+          0% { left: 0%; }
+          100% { left: 100%; }
+        }
+        @keyframes moveText {
+          0% { left: 0%; }
+          100% { left: 100%; }
+        }
+      `}</style>
+    </div>
+  );
+}
 
   return (
     <div

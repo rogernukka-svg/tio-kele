@@ -18,7 +18,7 @@ export default function JokerPayLogin() {
 
     try {
       if (!email || !password) {
-        setError('Ingresá un correo y una contraseña.');
+        setError('Ingresá un correo y contraseña.');
         setLoading(false);
         return;
       }
@@ -48,113 +48,117 @@ export default function JokerPayLogin() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'radial-gradient(circle at 20% 20%, #3B0E6E, #1B0A2A)',
-        padding: 20,
+        padding: 24,
+        background: 'linear-gradient(180deg, #00150F, #003223, #000)',
       }}
     >
       <div
         style={{
           width: '100%',
           maxWidth: 380,
-          background: 'rgba(255,255,255,0.05)',
+          background: 'rgba(0,0,0,0.55)',
           borderRadius: 20,
-          boxShadow: '0 0 25px rgba(0,0,0,0.4)',
-          padding: '24px 26px',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255,255,255,0.1)',
+          padding: '32px 26px 36px',
+          border: '2px solid rgba(20,255,150,0.25)',
+          boxShadow: '0 0 25px rgba(0,255,120,0.15)',
+          backdropFilter: 'blur(9px)',
           textAlign: 'center',
+          animation: 'fadeIn .7s ease-out',
         }}
       >
-        {/* 🎭 Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 16 }}>
-          <span style={{ fontSize: 28 }}>🎭</span>
-          <h1
-            style={{
-              fontWeight: 900,
-              fontSize: 24,
-              letterSpacing: 0.5,
-              background: 'linear-gradient(90deg, #FFD54F, #FFB300)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}
-          >
-            JokerPay
-          </h1>
-        </div>
+        <style>{`
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+        `}</style>
 
-        {/* ✨ Frase */}
-        <p style={{ color: '#FFD54F', fontSize: 14, fontWeight: 500, marginBottom: 18 }}>
-          Tu suerte te espera 🎲
+        {/* ✨ TEXTO PRINCIPAL (SIN JOKERPAY) */}
+        <p
+          style={{
+            color: '#FFE269',
+            fontSize: 14,
+            fontWeight: 600,
+            marginBottom: 22,
+          }}
+        >
+          Tu suerte está a un clic 🎲
         </p>
 
-        {/* Formulario */}
-        <form onSubmit={handleAuth} style={{ display: 'grid', gap: 12 }}>
+        {/* FORMULARIO */}
+        <form onSubmit={handleAuth} style={{ display: 'grid', gap: 14 }}>
           <input
-            className="input"
-            required
             type="email"
+            required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Correo electrónico"
             style={{
-              padding: '10px 12px',
-              borderRadius: 10,
-              border: '1px solid rgba(255,255,255,0.2)',
-              background: 'rgba(255,255,255,0.08)',
-              color: '#fff',
-              fontSize: 14,
+              padding: '12px 14px',
+              background: '#02140F',
+              borderRadius: 14,
+              border: '2px solid #0DD47C',
+              color: '#CFFFEA',
+              fontSize: 15,
+              boxShadow: '0 0 8px rgba(0,255,120,0.15)',
+              outline: 'none',
             }}
           />
+
           <input
-            className="input"
-            required
             type="password"
+            required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Contraseña"
             style={{
-              padding: '10px 12px',
-              borderRadius: 10,
-              border: '1px solid rgba(255,255,255,0.2)',
-              background: 'rgba(255,255,255,0.08)',
-              color: '#fff',
-              fontSize: 14,
+              padding: '12px 14px',
+              background: '#02140F',
+              borderRadius: 14,
+              border: '2px solid #0DD47C',
+              color: '#CFFFEA',
+              fontSize: 15,
+              boxShadow: '0 0 8px rgba(0,255,120,0.15)',
+              outline: 'none',
             }}
           />
 
-          {error && <div style={{ color: '#ff9b9b', fontSize: 13 }}>{error}</div>}
+          {error && (
+            <div style={{ color: '#ff7474', fontSize: 13 }}>{error}</div>
+          )}
 
           <button
             disabled={loading}
             type="submit"
             style={{
-              marginTop: 6,
-              background: 'linear-gradient(90deg, #FFD54F, #FFB300)',
-              border: 'none',
-              color: '#2B0A4D',
+              background: 'linear-gradient(180deg,#FFD943,#E6B500)',
+              padding: '12px 0',
+              border: '2px solid #C49A00',
+              boxShadow: '0 4px 0 #8A6D00',
+              borderRadius: 14,
               fontWeight: 900,
-              borderRadius: 12,
-              padding: '10px 0',
-              fontSize: 15,
-              transition: 'all .2s ease-in-out',
+              fontSize: 17,
+              letterSpacing: 1,
+              color: '#000',
+              marginTop: 6,
             }}
           >
             {loading ? 'Procesando...' : isSignup ? 'Crear cuenta' : 'Entrar'}
           </button>
         </form>
 
-        {/* Cambiar modo */}
-        <div style={{ marginTop: 14, fontSize: 13, color: '#bbb' }}>
+        {/* SWITCH LOGIN / SIGNUP */}
+        <div style={{ marginTop: 18, fontSize: 13, color: '#D0FDE8' }}>
           {isSignup ? (
             <>
               ¿Ya tenés cuenta?{' '}
               <button
                 onClick={() => setIsSignup(false)}
                 style={{
-                  color: '#FFD54F',
+                  color: '#FFE269',
                   background: 'transparent',
                   border: 'none',
-                  fontWeight: 600,
+                  fontWeight: 700,
                   cursor: 'pointer',
                 }}
               >
@@ -163,14 +167,14 @@ export default function JokerPayLogin() {
             </>
           ) : (
             <>
-              ¿Sin cuenta?{' '}
+              ¿No tenés cuenta?{' '}
               <button
                 onClick={() => setIsSignup(true)}
                 style={{
-                  color: '#FFD54F',
+                  color: '#FFE269',
                   background: 'transparent',
                   border: 'none',
-                  fontWeight: 600,
+                  fontWeight: 700,
                   cursor: 'pointer',
                 }}
               >
@@ -180,7 +184,7 @@ export default function JokerPayLogin() {
           )}
         </div>
 
-        <div style={{ marginTop: 18, fontSize: 11, color: '#777' }}>
+        <div style={{ marginTop: 20, fontSize: 11, color: '#6EA590' }}>
           © {new Date().getFullYear()} JokerPay · Tu suerte, tu momento
         </div>
       </div>

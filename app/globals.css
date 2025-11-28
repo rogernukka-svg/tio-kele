@@ -245,3 +245,84 @@ h1,h2,h3{ margin: 0 0 8px 0; }
 
 /* ====== Tipografía de premios (canvas) ====== */
 .prize-font { font-family: "Bebas Neue", ui-sans-serif; letter-spacing:.5px; }
+.logo {
+  width: clamp(250px, 50vw, 420px);
+  z-index: 2;
+  filter: drop-shadow(0 0 15px #00ff88);
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  font-size: clamp(18px, 4vw, 32px);
+  color: #ffe600;
+  text-shadow: 0 0 10px black;
+  margin-bottom: 20px;
+  letter-spacing: 3px;
+  font-weight: bold;
+  z-index: 2;
+  text-align: center;
+}
+
+.loader-container {
+  position: relative;
+  width: 80%;
+  max-width: 600px;
+  text-align: center;
+  z-index: 2;
+  margin-top: 20px;
+}
+
+.tiokele {
+  width: 140px;
+  position: absolute;
+  top: -110px;
+  left: 0%;
+  transform: translateX(-50%);
+  animation: moveVan 4s linear forwards;
+  z-index: 3;
+}
+
+.percent-text {
+  position: absolute;
+  top: 70px;
+  left: 0%;
+  transform: translateX(-50%);
+  font-size: 26px;
+  font-weight: bold;
+  color: #ffffff;
+  text-shadow: 0 0 5px #00ff88;
+  z-index: 3;
+  animation: moveText 4s linear forwards;
+}
+
+.loader {
+  width: 100%;
+  height: 10px;
+  background: rgba(255,255,255,0.25);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 80px;
+}
+
+.loader-line {
+  height: 100%;
+  width: 0%;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 0 12px #ffffff;
+  animation: load 4s linear forwards;
+}
+
+/* ANIMACIONES */
+@keyframes load {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+@keyframes moveVan {
+  0% { left: 0%; }
+  100% { left: 100%; }
+}
+@keyframes moveText {
+  0% { left: 0%; }
+  100% { left: 100%; }
+}
