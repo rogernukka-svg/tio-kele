@@ -258,10 +258,17 @@ function ScratchCard({
     const k = coverRef.current;
     if (!k) return;
     const ctx = k.getContext("2d")!;
-    ctx.globalCompositeOperation = "source-over";
-    ctx.fillStyle = "#FB923C";
-    ctx.fillRect(0, 0, k.width, k.height);
-    ctx.globalCompositeOperation = "destination-out";
+    const coverImg = new Image();
+coverImg.src = "/scratch/raspe.png";
+
+coverImg.onload = () => {
+  ctx.globalCompositeOperation = "source-over";
+  ctx.drawImage(coverImg, 0, 0, k.width, k.height);
+
+  // ahora sí activamos el borrado
+  ctx.globalCompositeOperation = "destination-out";
+};
+
   };
 
   const scratch = (x: number, y: number) => {
