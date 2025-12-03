@@ -3,181 +3,229 @@ import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import useSound from '../lib/useSound';
 
-type Prize = { label: string; payout: number; weight: number };
+/* ===================== TIPOS ===================== */
+type Prize = {
+  key: string;        // nombre interno
+  image: string;      // imagen revelada
+  payout: number;     // dinero
+  bonus: number;      // bonus
+  weight: number;     // probabilidad
+  special?: string;   // premios especiales
+};
+
 type Winner = { name: string; amount: number; ts: number };
 type Role = 'admin' | 'cashier' | 'user' | null;
 
-/* ===================== Config juego ===================== */
+/* ===================== CONFIGURACIÓN ===================== */
+
 const PRIZES: Prize[] = [
-  { label: '💸 ₲0', payout: 0, weight: 62 },
-  { label: '🎟 ₲1.000', payout: 1000, weight: 18 },
-  { label: '🎉 ₲5.000', payout: 5000, weight: 10 },
-  { label: '🏅 ₲10.000', payout: 10000, weight: 6 },
-  { label: '💎 ₲50.000', payout: 50000, weight: 3 },
-  { label: '👑 ₲100.000', payout: 100000, weight: 1 },
+  { key: "bachi", image: "/figures/bachi.png", payout: 30000, bonus: 0, weight: 1 },
+  { key: "beto", image: "/figures/beto.png", payout: 10000, bonus: 0, weight: 1 },
+  { key: "blas", image: "/figures/blas.png", payout: 40000, bonus: 0, weight: 1 },
+
+  { key: "castilloni", image: "/figures/castilloni.png", payout: 0, bonus: 0, weight: 1 },
+  { key: "celeste", image: "/figures/celeste.png", payout: 40000, bonus: 0, weight: 1 },
+  { key: "chaquenito", image: "/figures/chaquenito.png", payout: 20000, bonus: 0, weight: 1 },
+
+  { key: "chila", image: "/figures/chila.png", payout: 0, bonus: 3, weight: 1 },
+  { key: "desire", image: "/figures/desire.png", payout: 0, bonus: 0, weight: 1 },
+  { key: "efrain", image: "/figures/efrain.jpg", payout: 0, bonus: 0, weight: 1 },
+
+  { key: "esperanza", image: "/figures/esperanza.png", payout: 0, bonus: 0, weight: 1 },
+  { key: "horacio", image: "/figures/horacio.png", payout: 50000, bonus: 0, weight: 1 },
+
+  { key: "katya", image: "/figures/katya.png", payout: 0, bonus: 2, weight: 1 },
+  { key: "latorre", image: "/figures/latorre.png", payout: 20000, bonus: 0, weight: 1 },
+
+  { key: "lugo", image: "/figures/lugo.png", payout: 60000, bonus: 0, weight: 1 },
+  { key: "marito", image: "/figures/marito.png", payout: 0, bonus: 0, weight: 1 },
+
+  { key: "miguel", image: "/figures/miguel.png", payout: 0, bonus: 1, weight: 1 },
+  { key: "nakayama", image: "/figures/nakayama.png", payout: 0, bonus: 3, weight: 1 },
+
+  { key: "nicanor", image: "/figures/nicanor.png", payout: 0, bonus: 0, weight: 1 },
+  { key: "payo", image: "/figures/payo.png", payout: 50000, bonus: 0, weight: 1 },
+
+  { key: "portillo", image: "/figures/portillo.png", payout: 0, bonus: 0, weight: 1 },
+  { key: "riera", image: "/figures/riera.png", payout: 0, bonus: 1, weight: 1 },
+
+  { key: "santi", image: "/figures/santi.png", payout: 0, bonus: 1, weight: 1 },
+  { key: "tiokele", image: "/figures/tiokele.png", payout: 100000, bonus: 0, weight: 1 },
+
+  { key: "toro", image: "/figures/toro.png", payout: 70000, bonus: 0, weight: 1 },
+
+  // ⭐ Premios especiales EXACTOS
+  { key: "kachulo", image: "/figures/kachulo.png", payout: 0, bonus: 0, weight: 1, special: "5 kg de costilla" },
+  { key: "casa_pentium", image: "/figures/casapentium.png", payout: 0, bonus: 0, weight: 1, special: "1 karaoke" },
 ];
+
+
 
 const TICKET_PRICE = 1000;
 const JACKPOT_BASE = 2_000_000;
 const JACKPOT_CUT = 0.40;
 const JACKPOT_ODDS = 0.004;
 
-// Tamaños / visual
-const SCRATCH_RADIUS = 26;
-const PRIZE_FONT_FAMILY = '"Bebas Neue", ui-sans-serif';
-const USE_PRIZE_IMAGES = true;
+const SCRATCH_RADIUS = 18;
 
-/* ===================== Utils globales ===================== */
 
-// Vibración
+/* ===================== Vibración ===================== */
 const vib = (pattern: number | number[]) => {
   if ('vibrate' in navigator) {
-    try {
-      navigator.vibrate(pattern as any);
-    } catch {}
+    try { navigator.vibrate(pattern as any); } catch {}
   }
 };
 
-
-/* ===================== Hook Música de fondo ===================== */
+/* ===================== Hooks de sonido ===================== */
 function useBgm(url: string | null, initialVolume = 0.25) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
-    if (!url || typeof window === 'undefined') return;
+    if (!url) return;
     const a = new Audio(url);
     a.loop = true;
-    a.preload = 'auto';
     a.volume = initialVolume;
     audioRef.current = a;
+    return () => a.pause();
+  }, [url]);
 
-    return () => {
-      a.pause();
-      audioRef.current = null;
-    };
-  }, [url, initialVolume]);
-
-  const play = async () => {
-    try {
-      await audioRef.current?.play();
-      setEnabled(true);
-    } catch {}
+  return {
+    play: async () => { try { await audioRef.current?.play(); setEnabled(true); } catch {} },
+    pause: () => { audioRef.current?.pause(); setEnabled(false); },
+    enabled,
   };
-
-  const pause = () => {
-    try {
-      audioRef.current?.pause();
-      setEnabled(false);
-    } catch {}
-  };
-
-  return { play, pause, enabled };
 }
 
-/* ===================== Hook LoopSound ===================== */
-function useLoopSound(url: string, volume = 0.22) {
-  const ref = useRef<HTMLAudioElement | null>(null);
+/* ===================== Scratch super preciso ===================== */
+function useScratchSound(url: string, volume = 0.25) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
   useEffect(() => {
     const a = new Audio(url);
     a.loop = true;
-    a.preload = 'auto';
     a.volume = volume;
-    ref.current = a;
+    audioRef.current = a;
 
     return () => {
       try { a.pause(); } catch {}
-      ref.current = null;
     };
   }, [url, volume]);
 
-  const play = async () => { try { await ref.current?.play(); } catch {} };
+  const play = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) return;
+
+    // ⭐ arranca en parte fuerte del sonido
+    audioRef.current.currentTime = 0.05;
+    audioRef.current.play().catch(() => {});
+    setIsPlaying(true);
+  };
+
   const stop = () => {
-    if (!ref.current) return;
-    try {
-      ref.current.pause();
-      ref.current.currentTime = 0;
-    } catch {}
+    if (!audioRef.current) return;
+    if (!isPlaying) return;
+
+    audioRef.current.pause();
+    audioRef.current.currentTime = 0;
+    setIsPlaying(false);
   };
 
   return { play, stop };
 }
 
-/* ===================== Audio unlock ===================== */
-function installGlobalAudioUnlock(startFns: Array<() => void>) {
-  const tryResume = () => {
-    startFns.forEach((fn) => { try { fn(); } catch {} });
-    window.removeEventListener('pointerdown', tryResume);
-    window.removeEventListener('touchstart', tryResume);
+/* ===================== Loop genérico (otros sonidos) ===================== */
+function useLoopSound(url: string, volume = 0.22) {
+  const ref = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const a = new Audio(url);
+    a.loop = true;
+    a.volume = volume;
+    ref.current = a;
+    return () => { try { a.pause(); } catch {} };
+  }, [url, volume]);
+
+  return {
+    play: async () => { try { await ref.current?.play(); } catch {} },
+    stop: () => {
+      if (!ref.current) return;
+      try {
+        ref.current.pause();
+        ref.current.currentTime = 0;
+      } catch {}
+    },
   };
-  window.addEventListener('pointerdown', tryResume, { once: true });
-  window.addEventListener('touchstart', tryResume, { once: true });
 }
 
-/* ===================== Confetti ===================== */
+/* ===================== Desbloqueo global ===================== */
+function installGlobalAudioUnlock(startFns: Array<() => void>) {
+  const resume = () => {
+    startFns.forEach(f => { try { f(); } catch {} });
+    window.removeEventListener('pointerdown', resume);
+    window.removeEventListener('touchstart', resume);
+  };
+  window.addEventListener('pointerdown', resume, { once: true });
+  window.addEventListener('touchstart', resume, { once: true });
+}
+
+/* ===================== CONFETTI ===================== */
 function boomConfetti(node: HTMLElement | null) {
   if (!node) return;
-  const c = document.createElement('canvas');
-  c.style.position = 'absolute';
-  c.style.inset = '0';
+  const c = document.createElement("canvas");
+  c.style.position = "absolute";
+  c.style.inset = "0";
+  c.style.pointerEvents = "none";
   node.appendChild(c);
 
-  const ctx = c.getContext('2d')!;
+  const ctx = c.getContext("2d")!;
   c.width = node.clientWidth;
   c.height = node.clientHeight;
 
-  const pieces = Array.from({ length: 120 }).map(() => ({
-    x: Math.random() * c.width,
-    y: Math.random() * -80,
-    vx: -2 + Math.random() * 4,
-    vy: 2 + Math.random() * 3,
-    a: 1,
-    r: 4 + Math.random() * 6,
-  }));
-
-  const tick = () => {
-    ctx.clearRect(0, 0, c.width, c.height);
-    pieces.forEach((p) => {
-      p.x += p.vx;
-      p.y += p.vy;
-      p.a *= 0.985;
-      ctx.globalAlpha = p.a;
-      ctx.fillStyle = '#FACC15';
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fill();
-    });
-    if (pieces.some((p) => p.a > 0.08))
-      requestAnimationFrame(tick);
-    else node.removeChild(c);
-  };
-
-  tick();
-}
-
-/* ===================== Cache de imágenes ===================== */
-const IMG_CACHE: Record<string, HTMLImageElement> = {};
-function loadPrizeImage(key: string) {
-  if (IMG_CACHE[key]) return Promise.resolve(IMG_CACHE[key]);
   const img = new Image();
-  img.src = `/prizes/${key}.png`;
-  return new Promise((res) => {
-    img.onload = () => {
-      IMG_CACHE[key] = img;
-      res(img);
+  img.src = "/scratch/test.png";
+
+  img.onload = () => {
+    const pieces = Array.from({ length: 90 }).map(() => {
+      const size = 24 + Math.random() * 26;
+      return {
+        x: Math.random() * c.width,
+        y: Math.random() * -120,
+        vx: -2 + Math.random() * 4,
+        vy: 2 + Math.random() * 4,
+        a: 1,
+        size,
+        rotation: Math.random() * 360,
+        vr: -6 + Math.random() * 12,
+      };
+    });
+
+    const tick = () => {
+      ctx.clearRect(0, 0, c.width, c.height);
+      pieces.forEach((p) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rotation += p.vr;
+        p.a *= 0.985;
+
+        ctx.globalAlpha = p.a;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotation * Math.PI / 180);
+        ctx.drawImage(img, -p.size / 2, -p.size / 2, p.size, p.size);
+        ctx.restore();
+      });
+
+      if (pieces.some(p => p.a > 0.05)) requestAnimationFrame(tick);
+      else node.removeChild(c);
     };
-  });
-}
-function keyFromLabel(label: string) {
-  if (label.includes("100.000")) return "100k";
-  if (label.includes("50.000")) return "50k";
-  if (label.includes("10.000")) return "10k";
-  if (label.includes("5.000")) return "5k";
-  if (label.includes("1.000")) return "1k";
-  return "0";
+
+    tick();
+  };
 }
 
-/* ===================== ScratchCard ===================== */
+/* ===================== ScratchCard FINAL ===================== */
 type ScratchCardProps = {
   index: number;
   prize: Prize | null;
@@ -185,7 +233,9 @@ type ScratchCardProps = {
   onRevealed: (i: number) => void;
   playScratch: () => void;
   stopScratch: () => void;
+  winningCells: number[];   // ⭐ NUEVO
 };
+
 
 function ScratchCard({
   index,
@@ -194,27 +244,30 @@ function ScratchCard({
   onRevealed,
   playScratch,
   stopScratch,
+  winningCells,            // ⭐ AGREGAR ESTO
 }: ScratchCardProps) {
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const coverRef = useRef<HTMLCanvasElement | null>(null);
   const [revealed, setRevealed] = useState(false);
   const drawing = useRef(false);
+  const isWinner = winningCells.includes(index);
+
 
   const drawCover = () => {
     const k = coverRef.current;
     if (!k) return;
-    const ctx = k.getContext('2d')!;
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = '#FB923C';
+    const ctx = k.getContext("2d")!;
+    ctx.globalCompositeOperation = "source-over";
+    ctx.fillStyle = "#FB923C";
     ctx.fillRect(0, 0, k.width, k.height);
-    ctx.globalCompositeOperation = 'destination-out';
+    ctx.globalCompositeOperation = "destination-out";
   };
 
   const scratch = (x: number, y: number) => {
     const k = coverRef.current;
     if (!k) return;
-    const ctx = k.getContext('2d')!;
+    const ctx = k.getContext("2d")!;
     ctx.beginPath();
     ctx.arc(x, y, SCRATCH_RADIUS, 0, Math.PI * 2);
     ctx.fill();
@@ -223,11 +276,10 @@ function ScratchCard({
   const computePct = () => {
     const k = coverRef.current;
     if (!k) return 0;
-    const ctx = k.getContext('2d')!;
+    const ctx = k.getContext("2d")!;
     const img = ctx.getImageData(0, 0, k.width, k.height);
     let clear = 0;
-    for (let i = 3; i < img.data.length; i += 4)
-      if (img.data[i] === 0) clear++;
+    for (let i = 3; i < img.data.length; i += 4) if (img.data[i] === 0) clear++;
     return clear / (img.data.length / 4);
   };
 
@@ -252,13 +304,15 @@ function ScratchCard({
     if (!drawing.current || !ticketActive || revealed) return;
     const r = coverRef.current!.getBoundingClientRect();
     scratch(e.clientX - r.left, e.clientY - r.top);
-    if (computePct() > 0.55) finish();
+    if (computePct() > 0.72) finish();
+
   };
 
   const pointerUp = () => {
     drawing.current = false;
     stopScratch();
-    if (computePct() > 0.55) finish();
+    if (computePct() > 0.72) finish();
+
   };
 
   useEffect(() => {
@@ -278,37 +332,40 @@ function ScratchCard({
       drawCover();
 
       if (prize) {
-        const ctx = c.getContext('2d')!;
-        ctx.fillStyle = '#065F46';
-        ctx.fillRect(0, 0, w, h);
+        const ctx = c.getContext("2d")!;
+        const img = new Image();
+        img.src = prize.image; // ⭐ AHORA SÍ REVELA TU FIGURA REAL
+
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0, w, h);
+        };
       }
     };
 
     resize();
     const ro = new ResizeObserver(resize);
     ro.observe(c.parentElement!);
-
     return () => ro.disconnect();
   }, [prize]);
 
   return (
     <div
       style={{
-        position: 'relative',
+        position: "relative",
         borderRadius: 14,
-        overflow: 'hidden',
-        border: '3px solid #FACC15',
+        overflow: "hidden",
+        border: "3px solid #FACC15",
       }}
     >
-      <canvas ref={canvasRef} style={{ width: '100%' }} />
+      <canvas ref={canvasRef} style={{ width: "100%" }} />
       <canvas
         ref={coverRef}
         style={{
-          position: 'absolute',
+          position: "absolute",
           inset: 0,
-          touchAction: 'none',
+          touchAction: "none",
           opacity: revealed ? 0 : 1,
-          transition: 'opacity .25s',
+          transition: "opacity .25s",
         }}
         onPointerDown={pointerDown}
         onPointerMove={pointerMove}
@@ -318,6 +375,7 @@ function ScratchCard({
     </div>
   );
 }
+
 /* ===================== Componente principal ===================== */
 
 export default function Game() {
@@ -485,44 +543,108 @@ useEffect(() => {
     };
   }, []);
 
-  /* ==== Lluvia de dinero simple (fondo) ==== */
-  useEffect(() => {
-    const container = document.getElementById("rain-money");
-    if (!container) return;
+ // ⭐ LLUVIA MASIVA + MICRO EXPLOSIONES DESPUÉS DEL SPLASH ⭐
+useEffect(() => {
+  if (showSplash) return;
 
-    const images = [
-      "/scratch/billete1.png",
-      "/scratch/billete2.png",
-      "/scratch/moneda1.png",
-    ];
+  const container = document.getElementById("rain-money");
+  if (!container) return;
 
-    function createDrop() {
-      const img = document.createElement("img");
-      img.src = images[Math.floor(Math.random() * images.length)];
+  const bills = [
+    "/DOLAR.png",
+    "/DOLAR1.png",
+    "/DOLAR2.png",
+    "/DOLAR3.png",
+    "/DOLAR4.png",
+    "/DOLAR5.png",
+    "/DOLAR6.png",
+    "/DOLAR7.png",
+  ];
 
-      img.style.position = "absolute";
-      img.style.top = "-80px";
-      img.style.left = Math.random() * 100 + "%";
-      img.style.width = 30 + Math.random() * 40 + "px";
-      img.style.opacity = "0.95";
-      img.style.animation = `moneyFall ${2 + Math.random() * 2}s linear`;
+  /* ===========================
+    🟩 1) LLUVIA MASIVA
+  ============================ */
+  const totalDrops = 160; // ACADEMIA RAS-PAY: lluvia intensa
+  for (let i = 0; i < totalDrops; i++) {
+    setTimeout(() => {
+      const drop = document.createElement("img");
+      drop.src = bills[Math.floor(Math.random() * bills.length)];
 
-      container.appendChild(img);
-      img.addEventListener("animationend", () => img.remove());
-    }
+      drop.style.position = "absolute";
+      drop.style.top = "-140px";
+      drop.style.left = Math.random() * 100 + "%";
+      drop.style.width = 35 + Math.random() * 55 + "px";
+      drop.style.opacity = "0.9";
+      drop.style.pointerEvents = "none";
+      drop.style.zIndex = "9999";
 
-    const interval = setInterval(createDrop, 250);
-    return () => clearInterval(interval);
-  }, []);
+      // Caída más larga → más lluvia en pantalla
+      drop.style.animation = `moneyRainFall ${2.2 + Math.random() * 1.8}s linear`;
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    setUserEmail(null);
-    setRole(null);
+      container.appendChild(drop);
+      drop.addEventListener("animationend", () => drop.remove());
+    }, Math.random() * 1200); // abanico en el tiempo
+  }
+
+  /* ===========================
+    🔥 2) MICRO EXPLOSIONES LATERALES
+  ============================ */
+  const microExplosion = (xPercent: number, delay: number) => {
+    setTimeout(() => {
+      for (let i = 0; i < 14; i++) {
+        const im = document.createElement("img");
+        im.src = bills[Math.floor(Math.random() * bills.length)];
+
+        im.style.position = "absolute";
+        im.style.top = "50%";
+        im.style.left = xPercent + "%";
+        im.style.width = 40 + Math.random() * 40 + "px";
+        im.style.opacity = "0.95";
+        im.style.zIndex = "9999";
+
+        const angle = Math.random() * 360;
+        const dist = 80 + Math.random() * 160;
+
+        im.animate(
+          [
+            {
+              transform: "translate(0, 0) scale(1) rotate(0deg)",
+              opacity: 1,
+            },
+            {
+              transform: `translate(${Math.cos(angle) * dist}px, ${
+                Math.sin(angle) * dist
+              }px) rotate(${Math.random() * 360 - 180}deg)`,
+              opacity: 0,
+            },
+          ],
+          {
+            duration: 1700 + Math.random() * 600,
+            easing: "cubic-bezier(0.22, 0.62, 0.2, 1)",
+            fill: "forwards",
+          }
+        );
+
+        container.appendChild(im);
+        setTimeout(() => im.remove(), 2500);
+      }
+    }, delay);
   };
+
+  // ⭐ Explosión izquierda + derecha + centro
+  microExplosion(20, 300);
+  microExplosion(80, 600);
+  microExplosion(50, 900);
+
+}, [showSplash]);
+
+
 
   const panelHref =
     role === "admin" ? "/admin" : role === "cashier" ? "/cashier" : "/";
+// ===== BONUS =====
+const [bonusLeft, setBonusLeft] = useState(3);
+const MAX_BONUS = 3;
 
   /* ===== Juego ===== */
   const [balance, setBalance] = useState<number>(5000);
@@ -538,6 +660,9 @@ useEffect(() => {
   const [ticketResolved, setTicketResolved] = useState(false);
   const [isActive, setIsActive] = useState<boolean>(false);
   const [message, setMessage] = useState<string>("");
+  const [ticketId, setTicketId] = useState(0);
+  const [winningCells, setWinningCells] = useState<number[]>([]); // ⭐ NUEVO
+
 
   const [bonusPct, setBonusPct] = useState<number | null>(null);
   useEffect(() => {
@@ -574,7 +699,8 @@ useEffect(() => {
   /* Sonidos */
   const sTap = useSound("/sfx/tap.wav", { volume: 0.6 });
   const sPrize = useSound("/sfx/win.wav", { volume: 0.85 });
-  const scratchLoop = useLoopSound("/sfx/scratch_loop.mp3", 0.2);
+  const scratchLoop = useScratchSound("/sfx/scratch_loop.mp3", 0.32);
+
 
   /* Música */
   const bgm = useBgm("/sfx/bgm.wav", 0.22);
@@ -649,22 +775,39 @@ useEffect(() => {
       : '—';
 
   const buyTicket = () => {
-    if (isActive) return;
-    if (balance < TICKET_PRICE) {
-      setMessage('Saldo insuficiente.');
-      return;
-    }
-    sTap();
-    setBalance((b) => b - TICKET_PRICE);
-    setJackpot((j) => j + Math.floor(TICKET_PRICE * JACKPOT_CUT));
+  if (bonusLeft <= 0) {
+    setMessage("Tu bono terminó. Reinicia para volver a jugar.");
+    return;
+  }
 
-    const prizes = Array.from({ length: 6 }, () => drawRandomPrize());
-    setCardPrizes(prizes);
-    setCardRevealed(new Array(6).fill(false));
-    setTicketResolved(false);
-    setIsActive(true);
-    setMessage('Raspa 6 casillas y busque 3 figuras iguales ✨');
-  };
+  if (isActive) return;
+
+  if (balance < TICKET_PRICE) {
+    setMessage("Saldo insuficiente.");
+    return;
+  }
+
+  sTap();
+  setBalance((b) => b - TICKET_PRICE);
+  setJackpot((j) => j + Math.floor(TICKET_PRICE * JACKPOT_CUT));
+
+  setBonusLeft((b) => b - 1);
+
+  const prizes = Array.from({ length: 6 }, () => drawRandomPrize());
+  setCardPrizes(prizes);
+  setCardRevealed(new Array(6).fill(false));
+
+  // ⭐ AGREGADO IMPORTANTE
+  setWinningCells([]);          // Limpia las casillas ganadoras
+
+  setTicketResolved(false);
+  setIsActive(true);
+  setTicketId((id) => id + 1);
+
+  setMessage(`Te quedan ${bonusLeft - 1} intentos.`);
+};
+
+
 
   const handleCardRevealed = (index: number) => {
     setCardRevealed((prev) => {
@@ -686,28 +829,35 @@ useEffect(() => {
 
     let paid = 0;
 
-    // Contar labels
-    const counts: Record<string, number> = {};
-    for (const p of cardPrizes) {
-      counts[p.label] = (counts[p.label] || 0) + 1;
-    }
+    // Contar keys
+const counts: Record<string, number> = {};
+for (const p of cardPrizes) {
+  counts[p.key] = (counts[p.key] || 0) + 1;
+}
 
-    let winnerLabel: string | null = null;
-    for (const [label, count] of Object.entries(counts)) {
-      const base = PRIZES.find((p) => p.label === label);
-      if (count >= 3 && base && base.payout > 0) {
-        winnerLabel = label;
-        break;
-      }
-    }
+let winnerKey: string | null = null;
+for (const [key, count] of Object.entries(counts)) {
+  const base = PRIZES.find((p) => p.key === key);
+  if (count >= 3 && base && base.payout > 0) {
+    winnerKey = key;
+    break;
+  }
+}
 
-    if (winnerLabel) {
-      const winnerPrize =
-        PRIZES.find((p) => p.label === winnerLabel) || null;
-      if (winnerPrize) {
-        paid += winnerPrize.payout;
-      }
-    }
+if (winnerKey) {
+  const winnerPrize = PRIZES.find((p) => p.key === winnerKey) || null;
+  if (winnerPrize) {
+    paid += winnerPrize.payout;
+  }
+}
+// ⭐ NUEVO: obtener las casillas ganadoras
+const winningIndexes: number[] = [];
+for (let i = 0; i < cardPrizes.length; i++) {
+  if (cardPrizes[i].key === winnerKey) winningIndexes.push(i);
+}
+// 👉 Guardar las casillas ganadoras en el estado
+setWinningCells(winningIndexes);
+
 
     // Jackpot opcional si hubo premio
     let winJackpot = false;
@@ -738,12 +888,25 @@ vib(big ? [12, 100, 12] : 18);
         )}${winJackpot ? ' + JACKPOT 🎰' : ''}! 🎉`
       );
     } else {
-      setStreak((s) => Math.min(s + 1, 6));
-      setMessage('No hubo 3 iguales esta vez. ¡Probá de nuevo! ✨');
-    }
+  setStreak((s) => Math.min(s + 1, 6));
+  setMessage('No hubo 3 iguales esta vez. ¡Probá de nuevo! ✨');
+
+  // ⭐ Animación “NO GANÓ”
+  document.body.classList.add("no-win");
+  setTimeout(() => document.body.classList.remove("no-win"), 800);
+}
+
 
     setTicketResolved(true);
     setIsActive(false);
+    // ⭐ OCULTAR TODAS LAS TAPAS (covers) DEL SCRATCH CUANDO TERMINA EL TICKET
+setTimeout(() => {
+  const covers = document.querySelectorAll("canvas[style*='absolute']");
+  covers.forEach((c) => {
+    (c as HTMLCanvasElement).style.opacity = "0";
+  });
+}, 50);
+
   }, [
     isActive,
     cardPrizes,
@@ -998,36 +1161,63 @@ if (showSplash) {
       </div>
 
       {/* CSS global exacto del HTML */}
-      <style jsx global>{`
-        @keyframes load {
-          0% { width: 0%; }
-          100% { width: 100%; }
-        }
-        @keyframes moveVan {
-          0% { left: 0%; }
-          100% { left: 100%; }
-        }
-        @keyframes moveText {
-          0% { left: 0%; }
-          100% { left: 100%; }
-        }
-      `}</style>
+      
+     <style jsx global>{`
+  .btn.btn-gold.pulse:not([disabled]) {
+    animation: rp-pulse 1.8s ease-in-out infinite;
+  }
+
+  @keyframes rp-pulse {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.04);
+    }
+  }
+
+  .scratch-wrap {
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.55);
+    transition: box-shadow 0.3s;
+    background: #020617;
+    border-radius: 14px;
+    padding: 8px;
+  }
+`}
+</style>
+
     </div>
   );
 }
 
   return (
+  <div
+    ref={wrapRef}
+    className="container"
+    style={{
+      position: 'relative',
+      minHeight: '100vh',
+      background: '#00120B',
+      padding: '0 10px 24px',
+      color: '#F9FAFB',
+      overflow: "visible", // ⭐ evita cortar la lluvia
+    }}
+  >
+    {/* ⭐ LLUVIA DE DINERO GLOBAL Y FULL-SCREEN */}
     <div
-      ref={wrapRef}
-      className="container"
+      id="rain-money"
       style={{
-        position: 'relative',
-        minHeight: '100vh',
-        background: '#00120B',
-        padding: '0 10px 24px',
-        color: '#F9FAFB',
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
+        pointerEvents: "none",
+        overflow: "hidden",
+        zIndex: 999999, // ⭐ lluvia siempre arriba
       }}
-    >
+    ></div>
+
       {/* 🔰 BANNER VER MI PERFIL */}
       <div
         style={{
@@ -1209,183 +1399,185 @@ if (showSplash) {
         </button>
 
         <button
-        type="button"
-        style={{
-          flex: 1,
-          background: '#4338CA',
-          color: '#E5E7EB',
-          borderRadius: 10,
-          padding: '8px 14px',
-          fontWeight: 700,
-          fontSize: 15,
-          border: '2px solid #3730A3',
-          boxShadow: '0 3px 0 #1E1B4B',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 4,
-          maxWidth: 140,
-        }}
-      >
-        Bonus <span style={{ fontWeight: 900 }}>3</span>
-      </button>
+  type="button"
+  style={{
+    flex: 1,
+    background: '#4338CA',
+    color: '#E5E7EB',
+    borderRadius: 10,
+    padding: '8px 14px',
+    fontWeight: 700,
+    fontSize: 15,
+    border: '2px solid #3730A3',
+    boxShadow: '0 3px 0 #1E1B4B',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    maxWidth: 140,
+  }}
+>
+  Bonus <span style={{ fontWeight: 900 }}>{bonusLeft}</span>
+</button>
+
 
       </div>  {/* ← cierre correcto de la barra JUGAR */}
 
 
 
 
-        {/* CASILLAS */}
-        <div className="scratch-wrap card">
-          <div
-            className="scratch-grid"
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: 10,
-              padding: 8,
-            }}
-          >
-            {cardPrizes.length === 6 ? (
-              cardPrizes.map((p, i) => (
-                <ScratchCard
-                  key={i}
-                  index={i}
-                  prize={p}
-                  ticketActive={isActive && !ticketResolved}
-                  onRevealed={handleCardRevealed}
-                  playScratch={scratchLoop.play}
-                  stopScratch={scratchLoop.stop}
-                />
-              ))
-            ) : (
-              <>
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      borderRadius: 14,
-                      background: '#000',
-                      height: 150,
-                      width: '100%',
-                      overflow: 'hidden',
-                      border: '3px solid #FACC15',
-                      boxShadow: '0 3px 0 rgba(0,0,0,0.5)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <img
-                      src="/scratch/raspe.png"
-                      alt="Raspe aquí"
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                      }}
-                    />
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
+       {/* CASILLAS */}
+<div className="scratch-wrap card">
+  <div
+    className="scratch-grid"
+    style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(3, 1fr)',
+      gap: 10,
+      padding: 8,
+    }}
+  >
+    {cardPrizes.length === 6 ? (
+      cardPrizes.map((p, i) => (
+        <ScratchCard
+  key={`${ticketId}-${i}`}   // ⭐ Fix real
+  index={i}
+  prize={p}
+  ticketActive={isActive && !ticketResolved}
+  onRevealed={handleCardRevealed}
+  playScratch={scratchLoop.play}
+  stopScratch={scratchLoop.stop}
+  winningCells={winningCells}   // ⭐ NUEVO — para resaltar ganadores
+/>
 
-          {message && (
-            <div
-              className="card"
-              style={{
-                marginTop: 10,
-                background: '#020617',
-                borderRadius: 10,
-                padding: '8px 10px',
-                fontSize: 13,
-              }}
-            >
-              {message}
-            </div>
-          )}
-        </div>
-
-        {/* INFO: GANADORES + RACHA */}
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 10,
-          }}
-        >
-          {/* === BLOQUES DE PUBLICIDAD (3 columnas) === */}
+      ))
+    ) : (
+      <>
+        {Array.from({ length: 6 }).map((_, i) => (
           <div
+            key={i}
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: 10,
-              marginBottom: 14,
+              borderRadius: 14,
+              background: '#000',
+              height: 150,
               width: '100%',
+              overflow: 'hidden',
+              border: '3px solid #FACC15',
+              boxShadow: '0 3px 0 rgba(0,0,0,0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            <div
+            <img
+              src="/scratch/raspe.png"
+              alt="Raspe aquí"
               style={{
-                background: '#020617',
-                borderRadius: 10,
-                padding: '10px 12px',
-                height: 78,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 3px 0 rgba(0,0,0,0.40)',
-                border: '2px solid #0EA463',
-                color: '#F9FAFB',
-                fontWeight: 800,
-                fontSize: 14,
-                textAlign: 'center',
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
               }}
-            >
-              Publicidad 1
-            </div>
-
-            <div
-              style={{
-                background: '#020617',
-                borderRadius: 10,
-                padding: '10px 12px',
-                height: 78,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 3px 0 rgba(0,0,0,0.40)',
-                border: '2px solid #0EA463',
-                color: '#F9FAFB',
-                fontWeight: 800,
-                fontSize: 14,
-                textAlign: 'center',
-              }}
-            >
-              Publicidad 2
-            </div>
-
-            <div
-              style={{
-                background: '#020617',
-                borderRadius: 10,
-                padding: '10px 12px',
-                height: 78,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 3px 0 rgba(0,0,0,0.40)',
-                border: '2px solid #0EA463',
-                color: '#F9FAFB',
-                fontWeight: 800,
-                fontSize: 14,
-                textAlign: 'center',
-              }}
-            >
-              Publicidad 3
-            </div>
+            />
           </div>
+        ))}
+      </>
+    )}
+  </div>
 
+  {message && (
+    <div
+      className="card"
+      style={{
+        marginTop: 10,
+        background: '#020617',
+        borderRadius: 10,
+        padding: '8px 10px',
+        fontSize: 13,
+      }}
+    >
+      {message}
+    </div>
+  )}
+</div>
+
+{/* INFO: GANADORES + RACHA */}
+<div
+  style={{
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 10,
+  }}
+>
+  {/* === BLOQUES DE PUBLICIDAD (3 columnas) === */}
+  <div
+    style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(3, 1fr)',
+      gap: 10,
+      marginBottom: 14,
+      width: '100%',
+    }}
+  >
+    <div
+      style={{
+        background: '#020617',
+        borderRadius: 10,
+        padding: '10px 12px',
+        height: 78,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxShadow: '0 3px 0 rgba(0,0,0,0.40)',
+        border: '2px solid #0EA463',
+        color: '#F9FAFB',
+        fontWeight: 800,
+        fontSize: 14,
+        textAlign: 'center',
+      }}
+    >
+      Publicidad 1
+    </div>
+
+    <div
+      style={{
+        background: '#020617',
+        borderRadius: 10,
+        padding: '10px 12px',
+        height: 78,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxShadow: '0 3px 0 rgba(0,0,0,0.40)',
+        border: '2px solid #0EA463',
+        color: '#F9FAFB',
+        fontWeight: 800,
+        fontSize: 14,
+        textAlign: 'center',
+      }}
+    >
+      Publicidad 2
+    </div>
+
+    <div
+      style={{
+        background: '#020617',
+        borderRadius: 10,
+        padding: '10px 12px',
+        height: 78,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxShadow: '0 3px 0 rgba(0,0,0,0.40)',
+        border: '2px solid #0EA463',
+        color: '#F9FAFB',
+        fontWeight: 800,
+        fontSize: 14,
+        textAlign: 'center',
+      }}
+    >
+      Publicidad 3
+    </div>
+  </div>
           {/* === RANKINGS DE COMPARTIDOS === */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
             {/* 🔥 Ranking diario */}
@@ -1546,17 +1738,6 @@ if (showSplash) {
             }
           }
 
-          @keyframes moneyFall {
-            0% {
-              transform: translateY(-80px) rotate(0deg);
-              opacity: 1;
-            }
-            100% {
-              transform: translateY(260px) rotate(45deg);
-              opacity: 0.9;
-            }
-          }
-
           .scratch-wrap {
             box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.55);
             transition: box-shadow 0.3s;
@@ -1569,16 +1750,7 @@ if (showSplash) {
             box-shadow: 0 0 32px 0 rgba(22, 163, 74, 0.45);
           }
 
-          @keyframes moneyRainFall {
-            0% {
-              transform: translateY(-80px) rotate(0deg);
-              opacity: 1;
-            }
-            100% {
-              transform: translateY(280px) rotate(30deg);
-              opacity: 0.8;
-            }
-          }
+      
         `}</style>
       </div>
     </div>
