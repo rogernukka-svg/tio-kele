@@ -185,7 +185,7 @@ export default function JokerPayLogin() {
         </div>
 
         <div style={{ marginTop: 20, fontSize: 11, color: '#6EA590' }}>
-          © {new Date().getFullYear()} JokerPay · Tu suerte, tu momento
+          © {new Date().getFullYear()} Tio Kele · Tu suerte, tu momento
         </div>
       </div>
     </div>

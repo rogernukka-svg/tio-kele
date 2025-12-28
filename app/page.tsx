@@ -19,45 +19,56 @@ type Role = 'admin' | 'cashier' | 'user' | null;
 /* ===================== CONFIGURACIÓN ===================== */
 
 const PRIZES: Prize[] = [
+  // ================= FILA 1 =================
+  { key: "tiokele", image: "/figures/tiokele.png", payout: 100000, bonus: 0, weight: 1 },
+  { key: "alfaro", image: "/figures/alfaro.png", payout: 30000, bonus: 0, weight: 1 },
+  { key: "aliana", image: "/figures/aliana.png", payout: 20000, bonus: 0, weight: 1 },
   { key: "bachi", image: "/figures/bachi.png", payout: 30000, bonus: 0, weight: 1 },
   { key: "beto", image: "/figures/beto.png", payout: 10000, bonus: 0, weight: 1 },
   { key: "blas", image: "/figures/blas.png", payout: 40000, bonus: 0, weight: 1 },
-
+  { key: "busarquis", image: "/figures/busarquis.png", payout: 0, bonus: 2, weight: 1 },
+  { key: "casa_pentium", image: "/figures/casapentium.png", payout: 0, bonus: 0, weight: 1, special: "1 karaoke" },
   { key: "castilloni", image: "/figures/castilloni.png", payout: 0, bonus: 0, weight: 1 },
+
+  // ================= FILA 2 =================
   { key: "celeste", image: "/figures/celeste.png", payout: 40000, bonus: 0, weight: 1 },
   { key: "chaquenito", image: "/figures/chaquenito.png", payout: 20000, bonus: 0, weight: 1 },
-
   { key: "chila", image: "/figures/chila.png", payout: 0, bonus: 3, weight: 1 },
+  { key: "comodin", image: "/figures/comodin.png", payout: 0, bonus: 0, weight: 1, special: "JOKER" },
   { key: "desire", image: "/figures/desire.png", payout: 0, bonus: 0, weight: 1 },
-  { key: "efrain", image: "/figures/efrain.jpg", payout: 0, bonus: 0, weight: 1 },
-
+  { key: "efrain", image: "/figures/efrain.png", payout: 0, bonus: 0, weight: 1 },
   { key: "esperanza", image: "/figures/esperanza.png", payout: 0, bonus: 0, weight: 1 },
+  { key: "estigarribia", image: "/figures/estigarribia.png", payout: 10000, bonus: 0, weight: 1 },
+  { key: "euclides", image: "/figures/euclides.png", payout: 5000, bonus: 0, weight: 1 },
+
+  // ================= FILA 3 =================
+  { key: "franco", image: "/figures/franco.png", payout: 0, bonus: 0, weight: 1 },
+  { key: "goyo", image: "/figures/goyo.png", payout: 0, bonus: 0, weight: 1 },
   { key: "horacio", image: "/figures/horacio.png", payout: 50000, bonus: 0, weight: 1 },
-
+  { key: "kachulo", image: "/figures/kachulo.png", payout: 0, bonus: 0, weight: 1, special: "5 kg de costilla" },
+  { key: "kale", image: "/figures/kale.png", payout: 1000, bonus: 0, weight: 1 },
   { key: "katya", image: "/figures/katya.png", payout: 0, bonus: 2, weight: 1 },
-  { key: "latorre", image: "/figures/latorre.png", payout: 20000, bonus: 0, weight: 1 },
-
+  { key: "latorre", image: "/figures/latorre.png", payout: 0, bonus: 2, weight: 1 },
   { key: "lugo", image: "/figures/lugo.png", payout: 60000, bonus: 0, weight: 1 },
   { key: "marito", image: "/figures/marito.png", payout: 0, bonus: 0, weight: 1 },
 
+  // ================= FILA 4 =================
   { key: "miguel", image: "/figures/miguel.png", payout: 0, bonus: 1, weight: 1 },
   { key: "nakayama", image: "/figures/nakayama.png", payout: 0, bonus: 3, weight: 1 },
-
+  { key: "nenecho", image: "/figures/nenecho.png", payout: 0, bonus: 3, weight: 1 },
   { key: "nicanor", image: "/figures/nicanor.png", payout: 0, bonus: 0, weight: 1 },
   { key: "payo", image: "/figures/payo.png", payout: 50000, bonus: 0, weight: 1 },
-
-  { key: "portillo", image: "/figures/portillo.png", payout: 0, bonus: 0, weight: 1 },
+  { key: "portillo", image: "/figures/portillo.png", payout: 0, bonus: 1, weight: 1 },
   { key: "riera", image: "/figures/riera.png", payout: 0, bonus: 1, weight: 1 },
-
   { key: "santi", image: "/figures/santi.png", payout: 0, bonus: 1, weight: 1 },
-  { key: "tiokele", image: "/figures/tiokele.png", payout: 100000, bonus: 0, weight: 1 },
+  { key: "sole", image: "/figures/sole.png", payout: 40000, bonus: 0, weight: 1 },
 
+  // ================= FILA 5 =================
   { key: "toro", image: "/figures/toro.png", payout: 70000, bonus: 0, weight: 1 },
-
-  // ⭐ Premios especiales EXACTOS
-  { key: "kachulo", image: "/figures/kachulo.png", payout: 0, bonus: 0, weight: 1, special: "5 kg de costilla" },
-  { key: "casa_pentium", image: "/figures/casapentium.png", payout: 0, bonus: 0, weight: 1, special: "1 karaoke" },
+  { key: "zacarias", image: "/figures/zacarias.png", payout: 0, bonus: 0, weight: 1 },
 ];
+
+
 
 
 
@@ -233,9 +244,8 @@ type ScratchCardProps = {
   onRevealed: (i: number) => void;
   playScratch: () => void;
   stopScratch: () => void;
-  winningCells: number[];   // ⭐ NUEVO
+  winningCells: number[];
 };
-
 
 function ScratchCard({
   index,
@@ -244,33 +254,30 @@ function ScratchCard({
   onRevealed,
   playScratch,
   stopScratch,
-  winningCells,            // ⭐ AGREGAR ESTO
+  winningCells,
 }: ScratchCardProps) {
-
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const coverRef = useRef<HTMLCanvasElement | null>(null);
   const [revealed, setRevealed] = useState(false);
   const drawing = useRef(false);
   const isWinner = winningCells.includes(index);
 
-
+  /* ===================== COVER ===================== */
   const drawCover = () => {
     const k = coverRef.current;
     if (!k) return;
     const ctx = k.getContext("2d")!;
     const coverImg = new Image();
-coverImg.src = "/scratch/raspe.png";
+    coverImg.src = "/scratch/raspe.png";
 
-coverImg.onload = () => {
-  ctx.globalCompositeOperation = "source-over";
-  ctx.drawImage(coverImg, 0, 0, k.width, k.height);
-
-  // ahora sí activamos el borrado
-  ctx.globalCompositeOperation = "destination-out";
-};
-
+    coverImg.onload = () => {
+      ctx.globalCompositeOperation = "source-over";
+      ctx.drawImage(coverImg, 0, 0, k.width, k.height);
+      ctx.globalCompositeOperation = "destination-out";
+    };
   };
 
+  /* ===================== SCRATCH ===================== */
   const scratch = (x: number, y: number) => {
     const k = coverRef.current;
     if (!k) return;
@@ -286,7 +293,9 @@ coverImg.onload = () => {
     const ctx = k.getContext("2d")!;
     const img = ctx.getImageData(0, 0, k.width, k.height);
     let clear = 0;
-    for (let i = 3; i < img.data.length; i += 4) if (img.data[i] === 0) clear++;
+    for (let i = 3; i < img.data.length; i += 4) {
+      if (img.data[i] === 0) clear++;
+    }
     return clear / (img.data.length / 4);
   };
 
@@ -298,6 +307,7 @@ coverImg.onload = () => {
     }
   };
 
+  /* ===================== POINTER EVENTS ===================== */
   const pointerDown = (e: React.PointerEvent) => {
     if (!ticketActive || revealed) return;
     drawing.current = true;
@@ -312,16 +322,15 @@ coverImg.onload = () => {
     const r = coverRef.current!.getBoundingClientRect();
     scratch(e.clientX - r.left, e.clientY - r.top);
     if (computePct() > 0.72) finish();
-
   };
 
   const pointerUp = () => {
     drawing.current = false;
     stopScratch();
     if (computePct() > 0.72) finish();
-
   };
 
+  /* ===================== CANVAS SETUP (ANTI NEGRO) ===================== */
   useEffect(() => {
     const c = canvasRef.current;
     const k = coverRef.current;
@@ -331,20 +340,34 @@ coverImg.onload = () => {
       const parent = c.parentElement!;
       const w = parent.clientWidth;
       const h = Math.round(w * 1.25);
+
       c.width = w;
       c.height = h;
       k.width = w;
       k.height = h;
 
+      // 🟢 Fondo seguro SIEMPRE (nunca negro)
+      const ctx = c.getContext("2d")!;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = "#020617"; // mismo color de tu UI
+      ctx.fillRect(0, 0, w, h);
+
       drawCover();
 
       if (prize) {
-        const ctx = c.getContext("2d")!;
         const img = new Image();
-        img.src = prize.image; // ⭐ AHORA SÍ REVELA TU FIGURA REAL
+        img.src = prize.image;
 
         img.onload = () => {
+          ctx.clearRect(0, 0, w, h);
           ctx.drawImage(img, 0, 0, w, h);
+        };
+
+        img.onerror = () => {
+          // fallback si la imagen falla
+          ctx.fillStyle = "#020617";
+          ctx.fillRect(0, 0, w, h);
         };
       }
     };
@@ -355,6 +378,7 @@ coverImg.onload = () => {
     return () => ro.disconnect();
   }, [prize]);
 
+  /* ===================== RENDER ===================== */
   return (
     <div
       style={{
@@ -362,9 +386,11 @@ coverImg.onload = () => {
         borderRadius: 14,
         overflow: "hidden",
         border: "3px solid #FACC15",
+        boxShadow: isWinner ? "0 0 16px rgba(250,204,21,0.9)" : undefined,
       }}
     >
       <canvas ref={canvasRef} style={{ width: "100%" }} />
+
       <canvas
         ref={coverRef}
         style={{
@@ -382,6 +408,7 @@ coverImg.onload = () => {
     </div>
   );
 }
+
 
 /* ===================== Componente principal ===================== */
 
@@ -838,18 +865,28 @@ const MAX_BONUS = 3;
 
     // Contar keys
 const counts: Record<string, number> = {};
-for (const p of cardPrizes) {
-  counts[p.key] = (counts[p.key] || 0) + 1;
-}
+let jokers = 0;
+
+cardPrizes.forEach((p) => {
+  if (p.key === "comodin") {
+    jokers++;
+  } else {
+    counts[p.key] = (counts[p.key] || 0) + 1;
+  }
+});
 
 let winnerKey: string | null = null;
-for (const [key, count] of Object.entries(counts)) {
+
+for (const key in counts) {
   const base = PRIZES.find((p) => p.key === key);
-  if (count >= 3 && base && base.payout > 0) {
+  if (!base || base.payout <= 0) continue;
+
+  if (counts[key] + jokers >= 3) {
     winnerKey = key;
     break;
   }
 }
+
 
 if (winnerKey) {
   const winnerPrize = PRIZES.find((p) => p.key === winnerKey) || null;
