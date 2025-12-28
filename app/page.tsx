@@ -741,14 +741,12 @@ const bgm = useBgm("/sfx/bgm.wav", 0.22);
 
 useEffect(() => {
   installGlobalAudioUnlock([
-    () => sTap(1),          // desbloquea audio
-    () => bgm.play(),       // ▶️ arranca música de fondo
-    () => {
-      scratchLoop.play();  // 🔓 desbloquea scratch
-      scratchLoop.stop();  // ⛔️ pero NO lo deja sonando
-    },
+    () => sTap(1),   // desbloquea audio
+    () => bgm.play() // música de fondo
+    // ❌ NO scratchLoop acá
   ]);
 }, []);
+
 
 const formatGs = (n: number) =>
   new Intl.NumberFormat("es-PY", {
