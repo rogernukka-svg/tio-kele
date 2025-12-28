@@ -737,21 +737,26 @@ const MAX_BONUS = 3;
 
 
   /* Música */
-  const bgm = useBgm("/sfx/bgm.wav", 0.22);
+const bgm = useBgm("/sfx/bgm.wav", 0.22);
 
-  useEffect(() => {
-    installGlobalAudioUnlock([
-      () => sTap(1),
-      () => bgm.play(),
-      () => scratchLoop.play(),
-    ]);
-  }, []);
-  const formatGs = (n: number) =>
-    new Intl.NumberFormat('es-PY', {
-      style: 'currency',
-      currency: 'PYG',
-      maximumFractionDigits: 0,
-    }).format(n);
+useEffect(() => {
+  installGlobalAudioUnlock([
+    () => sTap(1),          // desbloquea audio
+    () => bgm.play(),       // ▶️ arranca música de fondo
+    () => {
+      scratchLoop.play();  // 🔓 desbloquea scratch
+      scratchLoop.stop();  // ⛔️ pero NO lo deja sonando
+    },
+  ]);
+}, []);
+
+const formatGs = (n: number) =>
+  new Intl.NumberFormat("es-PY", {
+    style: "currency",
+    currency: "PYG",
+    maximumFractionDigits: 0,
+  }).format(n);
+
 
   const maskName = () => {
     const first = [
