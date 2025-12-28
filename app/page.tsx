@@ -734,6 +734,7 @@ const MAX_BONUS = 3;
   const sTap = useSound("/sfx/tap.wav", { volume: 0.6 });
   const sPrize = useSound("/sfx/win.wav", { volume: 0.85 });
   const scratchLoop = useScratchSound("/sfx/scratch_loop.mp3", 0.32);
+  const sLose = useSound("/sfx/perdida.wav", { volume: 0.8 });
 
 
   /* Música */
@@ -934,14 +935,16 @@ vib(big ? [12, 100, 12] : 18);
           paid
         )}${winJackpot ? ' + JACKPOT 🎰' : ''}! 🎉`
       );
-    } else {
+   } else {
+  sLose(); // 🔊 SONIDO DE PÉRDIDA
+
   setStreak((s) => Math.min(s + 1, 6));
   setMessage('No hubo 3 iguales esta vez. ¡Probá de nuevo! ✨');
 
-  // ⭐ Animación “NO GANÓ”
   document.body.classList.add("no-win");
   setTimeout(() => document.body.classList.remove("no-win"), 800);
 }
+
 
 
     setTicketResolved(true);
