@@ -3,35 +3,60 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 
+/* ===============================
+   UTIL: email interno válido
+================================ */
+const buildEmail = (username: string, phone: string) =>
+  `${username.toLowerCase().trim()}+${phone.replace(/\D/g, '')}@jokerpay.local`;
+
 export default function JokerPayLogin() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isSignup, setIsSignup] = useState(false);
   const router = useRouter();
 
+  /* ===============================
+     AUTH HANDLER
+  ================================ */
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
     try {
-      if (!email || !password) {
-        setError('Ingresá un correo y contraseña.');
-        setLoading(false);
-        return;
+      if (!username || !phone || !password) {
+        throw new Error('Completá usuario, número y contraseña');
       }
 
+      const email = buildEmail(username, phone);
+
+      /* ---------- SIGN UP ---------- */
       if (isSignup) {
-        const { error: signUpError } = await supabase.auth.signUp({ email, password });
+        const { error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              username,
+              phone,
+            },
+          },
+        });
+
         if (signUpError) throw signUpError;
-        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-        if (signInError) throw signInError;
-      } else {
-        const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
-        if (loginError) throw loginError;
       }
+
+      /* ---------- LOGIN ---------- */
+      const { error: loginError } =
+        await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+      if (loginError) throw loginError;
 
       router.replace('/');
     } catch (err: any) {
@@ -41,6 +66,9 @@ export default function JokerPayLogin() {
     }
   };
 
+  /* ===============================
+     UI
+  ================================ */
   return (
     <div
       style={{
@@ -63,121 +91,64 @@ export default function JokerPayLogin() {
           boxShadow: '0 0 25px rgba(0,255,120,0.15)',
           backdropFilter: 'blur(9px)',
           textAlign: 'center',
-          animation: 'fadeIn .7s ease-out',
         }}
       >
-        <style>{`
-          @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-        `}</style>
-
-        {/* ✨ TEXTO PRINCIPAL (SIN JOKERPAY) */}
-        <p
-          style={{
-            color: '#FFE269',
-            fontSize: 14,
-            fontWeight: 600,
-            marginBottom: 22,
-          }}
-        >
+        <p style={{ color: '#FFE269', fontWeight: 600, marginBottom: 22 }}>
           Tu suerte está a un clic 🎲
         </p>
 
-        {/* FORMULARIO */}
         <form onSubmit={handleAuth} style={{ display: 'grid', gap: 14 }}>
           <input
-            type="email"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Usuario"
+            style={inputStyle}
             required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Correo electrónico"
-            style={{
-              padding: '12px 14px',
-              background: '#02140F',
-              borderRadius: 14,
-              border: '2px solid #0DD47C',
-              color: '#CFFFEA',
-              fontSize: 15,
-              boxShadow: '0 0 8px rgba(0,255,120,0.15)',
-              outline: 'none',
-            }}
+          />
+
+          <input
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="Número"
+            style={inputStyle}
+            required
           />
 
           <input
             type="password"
-            required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Contraseña"
-            style={{
-              padding: '12px 14px',
-              background: '#02140F',
-              borderRadius: 14,
-              border: '2px solid #0DD47C',
-              color: '#CFFFEA',
-              fontSize: 15,
-              boxShadow: '0 0 8px rgba(0,255,120,0.15)',
-              outline: 'none',
-            }}
+            style={inputStyle}
+            required
           />
 
           {error && (
             <div style={{ color: '#ff7474', fontSize: 13 }}>{error}</div>
           )}
 
-          <button
-            disabled={loading}
-            type="submit"
-            style={{
-              background: 'linear-gradient(180deg,#FFD943,#E6B500)',
-              padding: '12px 0',
-              border: '2px solid #C49A00',
-              boxShadow: '0 4px 0 #8A6D00',
-              borderRadius: 14,
-              fontWeight: 900,
-              fontSize: 17,
-              letterSpacing: 1,
-              color: '#000',
-              marginTop: 6,
-            }}
-          >
-            {loading ? 'Procesando...' : isSignup ? 'Crear cuenta' : 'Entrar'}
+          <button disabled={loading} type="submit" style={buttonStyle}>
+            {loading
+              ? 'Procesando...'
+              : isSignup
+              ? 'Crear cuenta'
+              : 'Entrar'}
           </button>
         </form>
 
-        {/* SWITCH LOGIN / SIGNUP */}
         <div style={{ marginTop: 18, fontSize: 13, color: '#D0FDE8' }}>
           {isSignup ? (
             <>
               ¿Ya tenés cuenta?{' '}
-              <button
-                onClick={() => setIsSignup(false)}
-                style={{
-                  color: '#FFE269',
-                  background: 'transparent',
-                  border: 'none',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
+              <button onClick={() => setIsSignup(false)} style={linkStyle}>
                 Iniciar sesión
               </button>
             </>
           ) : (
             <>
               ¿No tenés cuenta?{' '}
-              <button
-                onClick={() => setIsSignup(true)}
-                style={{
-                  color: '#FFE269',
-                  background: 'transparent',
-                  border: 'none',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
+              <button onClick={() => setIsSignup(true)} style={linkStyle}>
                 Crear cuenta
               </button>
             </>
@@ -191,3 +162,36 @@ export default function JokerPayLogin() {
     </div>
   );
 }
+
+/* ===============================
+   STYLES
+================================ */
+const inputStyle = {
+  padding: '12px 14px',
+  background: '#02140F',
+  borderRadius: 14,
+  border: '2px solid #0DD47C',
+  color: '#CFFFEA',
+  fontSize: 15,
+  outline: 'none',
+};
+
+const buttonStyle = {
+  background: 'linear-gradient(180deg,#FFD943,#E6B500)',
+  padding: '12px 0',
+  border: '2px solid #C49A00',
+  boxShadow: '0 4px 0 #8A6D00',
+  borderRadius: 14,
+  fontWeight: 900,
+  fontSize: 17,
+  color: '#000',
+  marginTop: 6,
+};
+
+const linkStyle = {
+  color: '#FFE269',
+  background: 'transparent',
+  border: 'none',
+  fontWeight: 700,
+  cursor: 'pointer',
+};

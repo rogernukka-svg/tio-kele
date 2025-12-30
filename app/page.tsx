@@ -16,57 +16,86 @@ type Prize = {
 type Winner = { name: string; amount: number; ts: number };
 type Role = 'admin' | 'cashier' | 'user' | null;
 
-/* ===================== CONFIGURACIÓN ===================== */
-
 const PRIZES: Prize[] = [
-  // ================= FILA 1 =================
-  { key: "tiokele", image: "/figures/tiokele.png", payout: 100000, bonus: 0, weight: 1 },
-  { key: "alfaro", image: "/figures/alfaro.png", payout: 30000, bonus: 0, weight: 1 },
-  { key: "aliana", image: "/figures/aliana.png", payout: 20000, bonus: 0, weight: 1 },
-  { key: "bachi", image: "/figures/bachi.png", payout: 30000, bonus: 0, weight: 1 },
-  { key: "beto", image: "/figures/beto.png", payout: 10000, bonus: 0, weight: 1 },
-  { key: "blas", image: "/figures/blas.png", payout: 40000, bonus: 0, weight: 1 },
-  { key: "busarquis", image: "/figures/busarquis.png", payout: 0, bonus: 2, weight: 1 },
-  { key: "casa_pentium", image: "/figures/casapentium.png", payout: 0, bonus: 0, weight: 1, special: "1 karaoke" },
-  { key: "castilloni", image: "/figures/castilloni.png", payout: 0, bonus: 0, weight: 1 },
+  // ================= KELEMBU (FIGURA DEL JUEGO) =================
+  {
+    key: "kelembu_common",
+    image: "/figures/kelembu.png",
+    payout: 0,
+    bonus: 0,
+    weight: 99,
+  },
+  {
+    key: "kelembu_rare",
+    image: "/figures/kelembu.png",
+    payout: 100000,
+    bonus: 0,
+    weight: 0.05, // 🔒 ultra raro (≈ 1 por semana)
+  },
 
-  // ================= FILA 2 =================
-  { key: "celeste", image: "/figures/celeste.png", payout: 40000, bonus: 0, weight: 1 },
-  { key: "chaquenito", image: "/figures/chaquenito.png", payout: 20000, bonus: 0, weight: 1 },
-  { key: "chila", image: "/figures/chila.png", payout: 0, bonus: 3, weight: 1 },
-  { key: "comodin", image: "/figures/comodin.png", payout: 0, bonus: 0, weight: 1, special: "JOKER" },
-  { key: "desire", image: "/figures/desire.png", payout: 0, bonus: 0, weight: 1 },
-  { key: "efrain", image: "/figures/efrain.png", payout: 0, bonus: 0, weight: 1 },
-  { key: "esperanza", image: "/figures/esperanza.png", payout: 0, bonus: 0, weight: 1 },
-  { key: "estigarribia", image: "/figures/estigarribia.png", payout: 10000, bonus: 0, weight: 1 },
-  { key: "euclides", image: "/figures/euclides.png", payout: 5000, bonus: 0, weight: 1 },
+  // ================= PREMIO FRECUENTE =================
+  {
+    key: "kale",
+    image: "/figures/kale.png",
+    payout: 1000,
+    bonus: 0,
+    weight: 18,
+  },
 
-  // ================= FILA 3 =================
-  { key: "franco", image: "/figures/franco.png", payout: 0, bonus: 0, weight: 1 },
-  { key: "goyo", image: "/figures/goyo.png", payout: 0, bonus: 0, weight: 1 },
-  { key: "horacio", image: "/figures/horacio.png", payout: 50000, bonus: 0, weight: 1 },
-  { key: "kachulo", image: "/figures/kachulo.png", payout: 0, bonus: 0, weight: 1, special: "5 kg de costilla" },
-  { key: "kale", image: "/figures/kale.png", payout: 1000, bonus: 0, weight: 1 },
-  { key: "katya", image: "/figures/katya.png", payout: 0, bonus: 2, weight: 1 },
-  { key: "latorre", image: "/figures/latorre.png", payout: 0, bonus: 2, weight: 1 },
-  { key: "lugo", image: "/figures/lugo.png", payout: 60000, bonus: 0, weight: 1 },
-  { key: "marito", image: "/figures/marito.png", payout: 0, bonus: 0, weight: 1 },
+  // ================= PREMIOS MEDIOS =================
+  { key: "beto",   image: "/figures/beto.png",   payout: 10000, bonus: 0, weight: 1.8 },
+  { key: "aliana", image: "/figures/aliana.png", payout: 20000, bonus: 0, weight: 0.9 },
+  { key: "alfaro", image: "/figures/alfaro.png", payout: 30000, bonus: 0, weight: 0.6 },
+  { key: "bachi",  image: "/figures/bachi.png",  payout: 30000, bonus: 0, weight: 0.6 },
+  { key: "celeste",image: "/figures/celeste.png",payout: 40000, bonus: 0, weight: 0.4 },
+  { key: "blas",   image: "/figures/blas.png",   payout: 40000, bonus: 0, weight: 0.4 },
 
-  // ================= FILA 4 =================
-  { key: "miguel", image: "/figures/miguel.png", payout: 0, bonus: 1, weight: 1 },
-  { key: "nakayama", image: "/figures/nakayama.png", payout: 0, bonus: 3, weight: 1 },
-  { key: "nenecho", image: "/figures/nenecho.png", payout: 0, bonus: 3, weight: 1 },
-  { key: "nicanor", image: "/figures/nicanor.png", payout: 0, bonus: 0, weight: 1 },
-  { key: "payo", image: "/figures/payo.png", payout: 50000, bonus: 0, weight: 1 },
-  { key: "portillo", image: "/figures/portillo.png", payout: 0, bonus: 1, weight: 1 },
-  { key: "riera", image: "/figures/riera.png", payout: 0, bonus: 1, weight: 1 },
-  { key: "santi", image: "/figures/santi.png", payout: 0, bonus: 1, weight: 1 },
-  { key: "sole", image: "/figures/sole.png", payout: 40000, bonus: 0, weight: 1 },
+  // ================= PREMIOS ALTOS =================
+  { key: "horacio", image: "/figures/horacio.png", payout: 50000, bonus: 0, weight: 0.25 },
+  { key: "payo",    image: "/figures/payo.png",    payout: 50000, bonus: 0, weight: 0.25 },
+  { key: "lugo",    image: "/figures/lugo.png",    payout: 60000, bonus: 0, weight: 0.18 },
 
-  // ================= FILA 5 =================
-  { key: "toro", image: "/figures/toro.png", payout: 70000, bonus: 0, weight: 1 },
-  { key: "zacarias", image: "/figures/zacarias.png", payout: 0, bonus: 0, weight: 1 },
+  // 🐂 TORO — PREMIO ESPECIAL 70.000
+  {
+    key: "toro",
+    image: "/figures/toro.png",
+    payout: 70000,
+    bonus: 0,
+    weight: 0.12, // 🔒 ~1 por semana
+  },
+
+  // ================= BONUS (NO CONSUMEN POZO) =================
+  { key: "busarquis", image: "/figures/busarquis.png", payout: 0, bonus: 2, weight: 3 },
+  { key: "chila",     image: "/figures/chila.png",     payout: 0, bonus: 3, weight: 2.5 },
+  { key: "katya",     image: "/figures/katya.png",     payout: 0, bonus: 2, weight: 3 },
+  { key: "latorre",   image: "/figures/latorre.png",   payout: 0, bonus: 2, weight: 3 },
+  { key: "miguel",    image: "/figures/miguel.png",    payout: 0, bonus: 1, weight: 3 },
+  { key: "nakayama",  image: "/figures/nakayama.png",  payout: 0, bonus: 3, weight: 2 },
+  { key: "nenecho",   image: "/figures/nenecho.png",   payout: 0, bonus: 3, weight: 2 },
+  { key: "portillo",  image: "/figures/portillo.png",  payout: 0, bonus: 1, weight: 3 },
+  { key: "riera",     image: "/figures/riera.png",     payout: 0, bonus: 1, weight: 3 },
+  { key: "santi",     image: "/figures/santi.png",     payout: 0, bonus: 1, weight: 3 },
+
+  // ================= PARTICIPACIÓN =================
+  { key: "franco",   image: "/figures/franco.png",   payout: 0, bonus: 0, weight: 2 },
+  { key: "goyo",     image: "/figures/goyo.png",     payout: 0, bonus: 0, weight: 2 },
+  { key: "marito",   image: "/figures/marito.png",   payout: 0, bonus: 0, weight: 2 },
+  { key: "nicanor",  image: "/figures/nicanor.png",  payout: 0, bonus: 0, weight: 2 },
+  { key: "zacarias", image: "/figures/zacarias.png", payout: 0, bonus: 0, weight: 2 },
+
+  // ================= COMODÍN =================
+  {
+    key: "comodin",
+    image: "/figures/comodin.png",
+    payout: 0,
+    bonus: 0,
+    weight: 1.5,
+    special: "JOKER",
+  },
 ];
+
+
+
 
 
 
@@ -245,6 +274,7 @@ type ScratchCardProps = {
   playScratch: () => void;
   stopScratch: () => void;
   winningCells: number[];
+  ticketResolved: boolean;
 };
 
 function ScratchCard({
@@ -255,12 +285,15 @@ function ScratchCard({
   playScratch,
   stopScratch,
   winningCells,
+  ticketResolved,
 }: ScratchCardProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const coverRef = useRef<HTMLCanvasElement | null>(null);
   const [revealed, setRevealed] = useState(false);
   const drawing = useRef(false);
-  const isWinner = winningCells.includes(index);
+  const isWinner = ticketResolved && winningCells.includes(index);
+
+  
 
   /* ===================== COVER ===================== */
   const drawCover = () => {
@@ -381,14 +414,15 @@ function ScratchCard({
   /* ===================== RENDER ===================== */
   return (
     <div
-      style={{
-        position: "relative",
-        borderRadius: 14,
-        overflow: "hidden",
-        border: "3px solid #FACC15",
-        boxShadow: isWinner ? "0 0 16px rgba(250,204,21,0.9)" : undefined,
-      }}
-    >
+  className={isWinner ? "win-heart" : ""}
+  style={{
+    position: "relative",
+    borderRadius: 14,
+    overflow: "hidden",
+    border: "3px solid #FACC15",
+  }}
+>
+
       <canvas ref={canvasRef} style={{ width: "100%" }} />
 
       <canvas
@@ -409,11 +443,35 @@ function ScratchCard({
   );
 }
 
+function evaluateWin(cards: Prize[]) {
+  const counts: Record<string, number> = {};
+  let jokers = 0;
+
+  for (const c of cards) {
+    if (c.key === "comodin" || c.key === "joker") {
+      jokers++;
+      continue;
+    }
+    counts[c.key] = (counts[c.key] || 0) + 1;
+  }
+
+  // Gana si cualquier premio llega a 3 contando comodines
+  for (const key of Object.keys(counts)) {
+    if (counts[key] + jokers >= 3) {
+      return key; // devuelve la key ganadora
+    }
+  }
+
+  return null;
+}
 
 /* ===================== Componente principal ===================== */
 
 export default function Game() {
   const [showSplash, setShowSplash] = useState(true);
+  const WEEKLY_BUDGET = 1_000_000;
+  const [weeklyPaid, setWeeklyPaid] = useState(0);
+
 
   // ================= SPLASH ANIMACIÓN =================
   useEffect(() => {
@@ -511,29 +569,59 @@ useEffect(() => {
   return () => clearInterval(pctTimer);
 }, []);
 
-  /* ===== Sesión & rol ===== */
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [role, setRole] = useState<Role>(null);
-  const [roleLoading, setRoleLoading] = useState(false);
+ /* ===== Sesión & rol ===== */
+const [username, setUsername] = useState<string | null>(null);
+const [role, setRole] = useState<Role>(null);
+const [roleLoading, setRoleLoading] = useState(false);
 
-  useEffect(() => {
-    if (
-      typeof window !== "undefined" &&
-      window.location.hash.includes("access_token=")
-    ) {
-      history.replaceState(
-        null,
-        "",
-        window.location.pathname + window.location.search
-      );
+useEffect(() => {
+  // 🔹 Limpia hash con access_token (OAuth / magic link)
+  if (
+    typeof window !== "undefined" &&
+    window.location.hash.includes("access_token=")
+  ) {
+    history.replaceState(
+      null,
+      "",
+      window.location.pathname + window.location.search
+    );
+  }
+
+  // 🔹 CARGA INICIAL DE SESIÓN (refresh / reload)
+  (async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    // ✅ username SIEMPRE desde metadata
+    setUsername(
+      session?.user?.user_metadata?.username ?? null
+    );
+
+    if (session?.user?.id) {
+      setRoleLoading(true);
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", session.user.id)
+        .maybeSingle();
+
+      setRole(!error && data?.role ? (data.role as Role) : "user");
+      setRoleLoading(false);
+    } else {
+      setRole(null);
     }
+  })();
 
-    (async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+  // 🔹 CAMBIOS DE SESIÓN EN VIVO (login / logout)
+  const { data: sub } = supabase.auth.onAuthStateChange(
+    async (_event, session) => {
 
-      setUserEmail(session?.user?.email ?? null);
+      // ✅ actualizar username en cada cambio
+      setUsername(
+        session?.user?.user_metadata?.username ?? null
+      );
 
       if (session?.user?.id) {
         setRoleLoading(true);
@@ -549,33 +637,14 @@ useEffect(() => {
       } else {
         setRole(null);
       }
-    })();
+    }
+  );
 
-    const { data: sub } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setUserEmail(session?.user?.email ?? null);
-
-        if (session?.user?.id) {
-          setRoleLoading(true);
-
-          const { data, error } = await supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", session.user.id)
-            .maybeSingle();
-
-          setRole(!error && data?.role ? (data.role as Role) : "user");
-          setRoleLoading(false);
-        } else {
-          setRole(null);
-        }
-      }
-    );
-
-    return () => {
-      sub.subscription?.unsubscribe();
-    };
-  }, []);
+  // 🔹 cleanup
+  return () => {
+    sub.subscription?.unsubscribe();
+  };
+}, []);
 
  // ⭐ LLUVIA MASIVA + MICRO EXPLOSIONES DESPUÉS DEL SPLASH ⭐
 useEffect(() => {
@@ -688,6 +757,69 @@ const MAX_BONUS = 3;
     { name: "Juan G.", amount: 10000, ts: Date.now() - 1000 * 60 * 50 },
   ]);
   const [streak, setStreak] = useState(0);
+  // 🎯 Elegir un premio según pesos (usa streak)
+  const drawRandomPrize = (): Prize => {
+    const boosted = [...PRIZES];
+
+    if (streak >= 6) {
+      const i = boosted.findIndex(p => p.payout === 1000);
+      if (i >= 0) {
+        boosted[i] = {
+          ...boosted[i],
+          weight: boosted[i].weight + 8,
+        };
+      }
+    }
+
+    const total = boosted.reduce((s, p) => s + p.weight, 0);
+    let r = Math.random() * total;
+
+    for (const p of boosted) {
+      r -= p.weight;
+      if (r <= 0) return p;
+    }
+
+    return boosted[boosted.length - 1];
+  };
+  // 🎟️ Genera un ticket con 6 casillas
+  // 🔒 Garantiza 1 solo KELEMBU por ticket
+  function generateTicket(): Prize[] {
+    const result: Prize[] = [];
+
+    // 1️⃣ Forzar EXACTAMENTE 1 kelembu
+    const kelembuPrize =
+      Math.random() < 0.005
+        ? PRIZES.find(p => p.key === "kelembu_rare")!
+        : PRIZES.find(p => p.key === "kelembu_common")!;
+
+    result.push(kelembuPrize);
+
+    const counts: Record<string, number> = {
+      kelembu: 1,
+    };
+
+    // 2️⃣ Completar hasta 6 premios
+    while (result.length < 6) {
+      const p = drawRandomPrize();
+
+      // ❌ Nunca permitir más kelembu
+      if (p.key.startsWith("kelembu")) continue;
+
+      // 🔒 Máximo 3 iguales
+      if ((counts[p.key] ?? 0) >= 3) continue;
+
+      counts[p.key] = (counts[p.key] ?? 0) + 1;
+      result.push(p);
+    }
+
+    // 3️⃣ Mezclar posiciones
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [result[i], result[j]] = [result[j], result[i]];
+    }
+
+    return result;
+  }
 
   const [cardPrizes, setCardPrizes] = useState<Prize[]>([]);
   const [cardRevealed, setCardRevealed] = useState<boolean[]>([]);
@@ -777,30 +909,8 @@ const formatGs = (n: number) =>
   };
 
   // Elegir un premio según pesos (con pity en racha larga)
-  const drawRandomPrize = (): Prize => {
-    const boosted = [...PRIZES];
-    if (streak >= 6) {
-      const i = boosted.findIndex((p) => p.payout === 1000);
-      if (i >= 0)
-        boosted[i] = {
-          ...boosted[i],
-          weight: boosted[i].weight + 8,
-        };
-    }
-    const total = boosted.reduce((s, p) => s + p.weight, 0);
-    let r = Math.random() * total;
-    for (const p of boosted) {
-      r -= p.weight;
-      if (r <= 0) return p;
-    }
-    return boosted[boosted.length - 1];
-  };
 
-  const shortEmail = userEmail
-    ? userEmail.length > 26
-      ? `${userEmail.slice(0, 12)}…${userEmail.slice(-10)}`
-      : userEmail
-    : null;
+
   const roleChip = roleLoading ? 'Cargando…' : role ?? '';
 
   const visibleTitle =
@@ -831,7 +941,7 @@ const formatGs = (n: number) =>
 
   setBonusLeft((b) => b - 1);
 
-  const prizes = Array.from({ length: 6 }, () => drawRandomPrize());
+  const prizes = generateTicket();
   setCardPrizes(prizes);
   setCardRevealed(new Array(6).fill(false));
 
@@ -845,69 +955,140 @@ const formatGs = (n: number) =>
   setMessage(`Te quedan ${bonusLeft - 1} intentos.`);
 };
 
+const resolveInstantWin = async (winnerKey: string) => {
+  if (ticketResolved) return;
 
+  setTicketResolved(true);
+  setIsActive(false);
 
-  const handleCardRevealed = (index: number) => {
-    setCardRevealed((prev) => {
-      const base =
-        prev.length === 6 ? [...prev] : new Array(6).fill(false);
-      if (base[index]) return prev;
-      base[index] = true;
-      return base;
+  const prize = PRIZES.find(p => p.key === winnerKey);
+  if (!prize) return;
+
+  // marcar casillas ganadoras
+  const winIdx: number[] = [];
+  cardPrizes.forEach((p, i) => {
+    if (p.key === winnerKey) winIdx.push(i);
+  });
+  setWinningCells(winIdx);
+
+  let paid = 0;
+
+  if (prize.payout > 0) {
+    const { error } = await supabase.rpc(
+      "consume_weekly_budget",
+      { p_amount: prize.payout }
+    );
+
+    if (!error) {
+      paid = prize.payout;
+      setBalance(b => b + paid);
+      setMessage(`¡Ganaste ${formatGs(paid)}! 🎉`);
+      sPrize();
+      boomConfetti(wrapRef.current);
+      vib(paid >= 50000 ? [12, 100, 12] : 18);
+      setStreak(0);
+      return;
+    }
+  }
+
+  // caso sin pago (comodín / sin efectivo)
+  setMessage("🎁 ¡Combinación ganadora!");
+};
+
+const handleCardRevealed = (index: number) => {
+  setCardRevealed((prev) => {
+    const next =
+      prev.length === 6 ? [...prev] : new Array(6).fill(false);
+
+    if (next[index]) return prev;
+
+    next[index] = true;
+
+    // 🔥 contar figuras reveladas en tiempo real
+    const counts: Record<string, number> = {};
+    let jokers = 0;
+
+    cardPrizes.forEach((p, i) => {
+      if (!next[i]) return;
+
+      if (p.key === "comodin") {
+        jokers++;
+      } else {
+        counts[p.key] = (counts[p.key] || 0) + 1;
+      }
     });
-  };
 
-  // Resolver ticket cuando las 6 casillas fueron reveladas
-  useEffect(() => {
-    if (!isActive) return;
-    if (cardPrizes.length !== 6) return;
-    if (cardRevealed.length !== 6) return;
-    if (!cardRevealed.every(Boolean)) return;
-    if (ticketResolved) return;
+    // 🔥 apenas llega a 3 → gana automático
+    for (const key in counts) {
+      if (counts[key] + jokers >= 3) {
+        resolveInstantWin(key);
+        break;
+      }
+    }
 
+    return next;
+  });
+};
+
+// Resolver ticket cuando las 6 casillas fueron reveladas
+useEffect(() => {
+  if (!isActive) return;
+  if (cardPrizes.length !== 6) return;
+  if (!cardRevealed.every(Boolean)) return;
+  if (ticketResolved) return;
+
+  const resolveTicket = async () => {
     let paid = 0;
 
-    // Contar keys
-const counts: Record<string, number> = {};
-let jokers = 0;
+    // Contar figuras
+    const counts: Record<string, number> = {};
+    let jokers = 0;
 
-cardPrizes.forEach((p) => {
-  if (p.key === "comodin") {
-    jokers++;
-  } else {
-    counts[p.key] = (counts[p.key] || 0) + 1;
-  }
-});
+    cardPrizes.forEach((p) => {
+      if (p.key === "comodin") jokers++;
+      else counts[p.key] = (counts[p.key] || 0) + 1;
+    });
 
-let winnerKey: string | null = null;
+    let winnerKey: string | null = null;
 
-for (const key in counts) {
-  const base = PRIZES.find((p) => p.key === key);
-  if (!base || base.payout <= 0) continue;
+    for (const key in counts) {
+      const base = PRIZES.find((p) => p.key === key);
+      if (!base || base.payout <= 0) continue;
 
-  if (counts[key] + jokers >= 3) {
-    winnerKey = key;
-    break;
-  }
-}
+      if (counts[key] + jokers >= 3) {
+        winnerKey = key;
+        break;
+      }
+    }
 
+    if (winnerKey) {
+      const winnerPrize = PRIZES.find((p) => p.key === winnerKey) || null;
 
-if (winnerKey) {
-  const winnerPrize = PRIZES.find((p) => p.key === winnerKey) || null;
-  if (winnerPrize) {
-    paid += winnerPrize.payout;
-  }
-}
-// ⭐ NUEVO: obtener las casillas ganadoras
-const winningIndexes: number[] = [];
-for (let i = 0; i < cardPrizes.length; i++) {
-  if (cardPrizes[i].key === winnerKey) winningIndexes.push(i);
-}
-// 👉 Guardar las casillas ganadoras en el estado
-setWinningCells(winningIndexes);
+      if (winnerPrize && winnerPrize.payout > 0) {
+        const { error } = await supabase.rpc(
+          "consume_weekly_budget",
+          { p_amount: winnerPrize.payout }
+        );
 
+        if (error) {
+          paid = 0;
+          setMessage("🎁 El pozo semanal ya fue repartido. ¡Seguís participando!");
+        } else {
+          paid = winnerPrize.payout;
+        }
+      }
+    }
 
-    // Jackpot opcional si hubo premio
+    // Casillas ganadoras
+    const winIdx: number[] = [];
+    if (winnerKey) {
+      cardPrizes.forEach((p, i) => {
+        if (p.key === winnerKey) winIdx.push(i);
+      });
+    }
+    setWinningCells(winIdx);
+
+    // Jackpot
     let winJackpot = false;
     if (paid > 0 && Math.random() < JACKPOT_ODDS) {
       paid += jackpot;
@@ -917,55 +1098,36 @@ setWinningCells(winningIndexes);
 
     if (paid > 0) {
       sPrize();
-      setWinners((w) =>
-        [{ name: maskName(), amount: paid, ts: Date.now() }, ...w].slice(
-          0,
-          6
-        )
-      );
-     const big = paid >= 50000;
-boomConfetti(wrapRef.current);
-vib(big ? [12, 100, 12] : 18);
+      boomConfetti(wrapRef.current);
+      vib(paid >= 50000 ? [12, 100, 12] : 18);
 
-      vib(big ? [12, 100, 12] : 18);
       setBalance((b) => b + paid);
       setStreak(0);
       setMessage(
-        `¡Ganaste ${formatGs(
-          paid
-        )}${winJackpot ? ' + JACKPOT 🎰' : ''}! 🎉`
+        `¡Ganaste ${formatGs(paid)}${winJackpot ? " + JACKPOT 🎰" : ""}! 🎉`
       );
-   } else {
-  sLose(); // 🔊 SONIDO DE PÉRDIDA
-
-  setStreak((s) => Math.min(s + 1, 6));
-  setMessage('No hubo 3 iguales esta vez. ¡Probá de nuevo! ✨');
-
-  document.body.classList.add("no-win");
-  setTimeout(() => document.body.classList.remove("no-win"), 800);
-}
-
-
+    } else {
+      sLose();
+      setStreak((s) => Math.min(s + 1, 6));
+      setMessage("No hubo 3 iguales esta vez. ¡Probá de nuevo! ✨");
+    }
 
     setTicketResolved(true);
     setIsActive(false);
-    // ⭐ OCULTAR TODAS LAS TAPAS (covers) DEL SCRATCH CUANDO TERMINA EL TICKET
-setTimeout(() => {
-  const covers = document.querySelectorAll("canvas[style*='absolute']");
-  covers.forEach((c) => {
-    (c as HTMLCanvasElement).style.opacity = "0";
-  });
-}, 50);
+  };
 
-  }, [
-    isActive,
-    cardPrizes,
-    cardRevealed,
-    ticketResolved,
-    jackpot,
-    formatGs,
-    sPrize,
-  ]);
+  resolveTicket();
+}, [
+  isActive,
+  cardPrizes,
+  cardRevealed,
+  ticketResolved,
+  jackpot,
+  sPrize,
+  sLose,
+  formatGs,
+]);
+
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -1234,6 +1396,7 @@ if (showSplash) {
     padding: 8px;
   }
 `}
+
 </style>
 
     </div>
@@ -1267,6 +1430,30 @@ if (showSplash) {
         zIndex: 999999, // ⭐ lluvia siempre arriba
       }}
     ></div>
+{/* 👤 USUARIO LOGUEADO */}
+{username && (
+  <div
+    style={{
+      marginBottom: 10,
+      padding: '10px 14px',
+      borderRadius: 12,
+      background: 'rgba(2,6,23,0.85)',
+      border: '2px solid #0EA463',
+      boxShadow: '0 3px 0 rgba(0,0,0,0.45)',
+      fontWeight: 800,
+      fontSize: 15,
+      color: '#A7F3D0',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    }}
+  >
+    <span>👤 Usuario:</span>
+    <span style={{ color: '#FACC15', fontWeight: 900 }}>
+      {username}
+    </span>
+  </div>
+)}
 
       {/* 🔰 BANNER VER MI PERFIL */}
       <div
@@ -1498,6 +1685,7 @@ if (showSplash) {
   playScratch={scratchLoop.play}
   stopScratch={scratchLoop.stop}
   winningCells={winningCells}   // ⭐ NUEVO — para resaltar ganadores
+  ticketResolved={ticketResolved}
 />
 
       ))
@@ -1774,34 +1962,57 @@ if (showSplash) {
 
         {/* === CSS GLOBAL === */}
         <style jsx global>{`
-          .btn.btn-gold.pulse:not([disabled]) {
-            animation: rp-pulse 1.8s ease-in-out infinite;
-          }
+  .btn.btn-gold.pulse:not([disabled]) {
+    animation: rp-pulse 1.8s ease-in-out infinite;
+  }
 
-          @keyframes rp-pulse {
-            0%,
-            100% {
-              transform: scale(1);
-            }
-            50% {
-              transform: scale(1.04);
-            }
-          }
+  @keyframes rp-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.04); }
+  }
 
-          .scratch-wrap {
-            box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.55);
-            transition: box-shadow 0.3s;
-            background: #020617;
-            border-radius: 14px;
-            padding: 8px;
-          }
+  .scratch-wrap {
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.55);
+    transition: box-shadow 0.3s;
+    background: #020617;
+    border-radius: 14px;
+    padding: 8px;
+  }
 
-          .scratch-wrap.active {
-            box-shadow: 0 0 32px 0 rgba(22, 163, 74, 0.45);
-          }
+  .scratch-wrap.active {
+    box-shadow: 0 0 32px 0 rgba(22, 163, 74, 0.45);
+  }
 
-      
-        `}</style>
+  /* ❤️ EFECTO CORAZÓN GANADOR ❤️ */
+  @keyframes heartBeatWin {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 0 0 rgba(250,204,21,0);
+    }
+    20% {
+      transform: scale(1.08);
+      box-shadow: 0 0 25px rgba(250,204,21,0.9);
+    }
+    40% {
+      transform: scale(1);
+      box-shadow: 0 0 12px rgba(250,204,21,0.6);
+    }
+    60% {
+      transform: scale(1.06);
+      box-shadow: 0 0 28px rgba(250,204,21,1);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 0 16px rgba(250,204,21,0.8);
+    }
+  }
+
+  .win-heart {
+    animation: heartBeatWin 0.9s ease-in-out infinite;
+    border-color: #FACC15 !important;
+  }
+`}</style>
+
       </div>
     </div>
     
